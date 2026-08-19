@@ -460,7 +460,7 @@
   // ---- live fleet: real registrations only, loaded from Supabase. Empty until people register. ----
   let fleet = [];
 
-  const SITE_VERSION = 'v0.5-alpha · 19 Aug 2026';
+  const SITE_VERSION = 'v0.6-alpha · 19 Aug 2026';
   document.getElementById('versionTag').textContent = SITE_VERSION;
 
   async function loadFleetFromSupabase(){
@@ -479,7 +479,6 @@
       console.error('Fleet load failed (safe to ignore in preview sandboxes):', err);
     }
     renderFleet(document.querySelector('.filters button.active')?.dataset.filter || 'all');
-    updateStats();
     const caption = document.querySelector('.map-caption');
     if (caption) caption.textContent = fleet.length === 0
       ? 'No boats registered yet — be the first to add a pin. Only approximate locality is ever public; exact coordinates are never stored or shown.'
@@ -544,14 +543,21 @@
     let n=0; const step = Math.max(1, Math.ceil(target/30));
     const t = setInterval(()=>{ n=Math.min(target,n+step); el.textContent=n; if(n>=target) clearInterval(t); }, 30);
   }
-  function updateStats(){
-    animateNum(document.getElementById('stat-boats'), fleet.reduce((a,f)=>a+Math.max(f.boats,1),0));
-    animateNum(document.getElementById('stat-countries'), new Set(fleet.map(f=>f.country)).size);
-    animateNum(document.getElementById('stat-builders'), fleet.filter(f=>f.role!=='owner' && f.role!=='Owner').length);
-    animateNum(document.getElementById('stat-sailing'), fleet.filter(f=>f.status==='sailing').length);
+  async function loadStatsFromSupabase(){
+    try {
+      const { data, error } = await sb.from('fleet_stats').select('*').single();
+      if (error) { console.error('Could not load fleet_stats:', error.message); return; }
+      if (!data) return;
+      animateNum(document.getElementById('stat-boats'), data.total_boats || 0);
+      animateNum(document.getElementById('stat-countries'), data.total_countries || 0);
+      animateNum(document.getElementById('stat-builders'), data.total_builders || 0);
+      animateNum(document.getElementById('stat-sailing'), data.total_sailing || 0);
+    } catch (err) {
+      console.error('Stats load failed (safe to ignore in preview sandboxes):', err);
+    }
   }
-  updateStats();
-  loadFleetFromSupabase(); // swaps demo pins for real registrations, if any exist
+  loadStatsFromSupabase(); // counts EVERY registration, public profile or not
+  loadFleetFromSupabase(); // draws pins only for those who opted into a public profile
 
   // ---- geocoding: turns country/region/locality into approximate lat/lng ----
   // Uses OpenStreetMap's free Nominatim service. Fine for occasional registrations;
@@ -646,6 +652,7 @@
     localStorage.removeItem('minimax_pending_registration');
     if (error) { alert('Registration could not be saved: ' + error.message); return; }
     alert("You're on the chart! Thanks for registering your MiniMax.");
+    loadStatsFromSupabase();
     loadFleetFromSupabase();
   }
   completePendingRegistrationIfAny();
