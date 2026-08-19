@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<meta charset="utf-8"><title>Fleet · review</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body{font:15px/1.5 system-ui,sans-serif;max-width:820px;margin:2rem auto;padding:0 1rem;color:#132}
+  h1{font-size:1.4rem;margin:0 0 1.2rem}
+  h2{font-size:1.1rem;margin:1.6rem 0 .4rem}
+  .card{border:1px solid #dde;border-radius:8px;padding:.9rem 1rem;margin:.6rem 0}
+  .card h3{margin:0 0 .2rem;font-size:1.05rem}
+  .meta{color:#678;font-size:.87rem}
+  .oid{font-family:ui-monospace,monospace;background:#f2f5f8;padding:.1rem .4rem;border-radius:4px}
+  button{font:inherit;padding:.35rem .8rem;border-radius:6px;border:1px solid #bcd;background:#fff;cursor:pointer}
+  button.ok{background:#0a6;border-color:#0a6;color:#fff}
+  input{font:inherit;padding:.4rem .5rem;border:1px solid #bcd;border-radius:6px}
+  .row{display:flex;gap:.5rem;align-items:center;margin-top:.6rem;flex-wrap:wrap}
+  .badge{font-size:.75rem;background:#0a6;color:#fff;padding:.1rem .45rem;border-radius:99px}
+  .muted{color:#89a}
+</style></head><body>
+
+<h1>Fleet review</h1>
+
+<div id="gate">
+  <p>Sign in with the address registered as class admin.</p>
+  <div class="row">
+    <input id="email" type="email" placeholder="you@example.com" size="28">
+    <button class="ok" id="send">Send link</button>
+  </div>
+  <p id="gateMsg" class="muted"></p>
+</div>
+
+<main id="app" hidden="">
+  <p class="muted">Signed in as <span id="who"></span> · <a href="#" id="out">sign out</a></p>
+  <div class="row">
+    <label><input type="checkbox" id="showAll"> show entries without an order ID</label>
+  </div>
+  <h2 id="hPend">Pending</h2><div id="pending"></div>
+  <h2>Verified</h2><div id="done"></div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://fftavybqhrvjbeofqrnc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdGF2eWJxaHJ2amJlb2Zxcm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI0NTMsImV4cCI6MjEwMjcwODQ1M30.2plNkkCD__49SKfcuoVSinvKlApGiX750r4bPbBlkR0';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+$('#send').onclick = async () => {
+  const email = $('#email').value.trim();
+  if (!email) return;
+  $('#gateMsg').textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({
+    email, options: { emailRedirectTo: location.href.split('#')[0] }
+  });
+  $('#gateMsg').textContent = error ? error.message : 'Check your inbox.';
+};
+$('#out').onclick = async e => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+$('#showAll').onchange = load;
+
+sb.auth.getSession().then(({ data }) => boot(data.session));
+sb.auth.onAuthStateChange((_evt, session) => boot(session));
+
+let current = null;
+async function boot(session) {
+  const uid = session ? session.user.id : null;
+  if (uid === current) return;      // evita recarregar duas vezes
+  current = uid;
+  if (!session) { $('#gate').hidden = false; $('#app').hidden = true; return; }
+  const { data: isAdmin, error } = await sb.rpc('is_class_admin');
+  if (error || !isAdmin) {
+    $('#gate').hidden = false; $('#app').hidden = true;
+    $('#gateMsg').textContent = error ? error.message
+      : 'Signed in, but this address is not on the class admin list.';
+    return;
+  }
+  $('#gate').hidden = true; $('#app').hidden = false;
+  $('#who').textContent = session.user.email;
+  load();
+}
+
+async function load() {
+  const { data, error } = await sb.from('boats')
+    .select('id,display_name,email,country,region,locality,order_id,boats_built,role,status,photo_url,verified,verified_at,verified_note,public_profile,created_at');
+  if (error) { $('#pending').textContent = error.message; return; }
+
+  const all = $('#showAll').checked;
+  const pend = data.filter(b => !b.verified && (all || b.order_id));
+  const done = data.filter(b => b.verified);
+  pend.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+  done.sort((a, b) => (b.verified_at || '').localeCompare(a.verified_at || ''));
+
+  $('#hPend').textContent = `Pending (${pend.length})`;
+  $('#pending').innerHTML = pend.length ? pend.map(card).join('')
+    : '<p class="muted">Nothing to review.</p>';
+  $('#done').innerHTML = done.length ? done.map(card).join('')
+    : '<p class="muted">None yet.</p>';
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = act);
+}
+
+function card(b) {
+  const place = [b.locality, b.region, b.country].filter(Boolean).join(', ');
+  return `<div class="card">
+    <h3>${esc(b.display_name) || '<span class="muted">(no name)</span>'}
+      ${b.verified ? '<span class="badge">verified</span>' : ''}</h3>
+    <div class="meta">${esc(b.email)}</div>
+    <div class="meta">${esc(place)} · ${esc(b.role)} · ${esc(b.status)}
+      · built: ${esc(b.boats_built ?? '—')}
+      ${b.public_profile ? '' : ' · <em>private</em>'}</div>
+    <div class="meta">order ID: ${b.order_id
+      ? `<span class="oid">${esc(b.order_id)}</span>`
+      : '<span class="muted">none supplied</span>'}
+      ${b.photo_url ? ` · <a href="${esc(b.photo_url)}" target="_blank" rel="noopener">photo</a>` : ''}</div>
+    ${b.verified_note ? `<div class="meta">note: ${esc(b.verified_note)}</div>` : ''}
+    <div class="row">
+      <input placeholder="note (optional)" size="30" id="n-${b.id}">
+      ${b.verified
+        ? `<button data-act="off" data-id="${b.id}">Withdraw</button>`
+        : `<button class="ok" data-act="on" data-id="${b.id}">Verify</button>`}
+    </div></div>`;
+}
+
+async function act(e) {
+  const btn = e.currentTarget, id = btn.dataset.id, on = btn.dataset.act === 'on';
+  const note = ($('#n-' + id)?.value || '').trim() || null;
+  btn.disabled = true; btn.textContent = '…';
+  const { error } = await sb.rpc('set_verification',
+    { p_boat: id, p_verified: on, p_note: note });
+  if (error) alert(error.message);
+  load();
+}
+</script>
+</body></html>
