@@ -1,14 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MiniMax World Fleet Map</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 
 <style>
   :root{
@@ -58,6 +56,7 @@
     text-transform:uppercase;
   }
   .btn-brass:hover{background:#dcae4c;}
+  .btn-brass[disabled]{opacity:.6;cursor:progress;}
 
   /* ---- hero: chart cartouche ---- */
   .hero{padding:64px 32px 40px;text-align:center;position:relative;}
@@ -73,11 +72,11 @@
   .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:14px;}
   h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,5vw,48px);margin:0 0 14px;letter-spacing:-.01em;}
   .hero p.lead{max-width:520px;margin:0 auto 26px;color:var(--parchment-dim);font-size:15.5px;}
-  .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+  .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;align-items:center;}
   .btn-outline{
     background:transparent;color:var(--parchment);border:1px solid var(--line-light);
     font-family:var(--font-mono);font-size:12.5px;letter-spacing:.05em;padding:10px 18px;
-    border-radius:2px;cursor:pointer;text-transform:uppercase;
+    border-radius:2px;cursor:pointer;text-transform:uppercase;display:inline-block;text-decoration:none;
   }
   .btn-outline:hover{border-color:var(--brass);color:var(--brass);}
 
@@ -135,6 +134,16 @@
   .feat h3{font-family:var(--font-display);font-size:16px;margin:0 0 8px;}
   .feat p{font-size:13px;color:var(--parchment-dim);margin:0;}
 
+  /* ---- flash banner (replaces blocking alerts) ---- */
+  .flash{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:120;
+    background:var(--parchment);color:var(--ink);border:1px solid var(--brass-dim);
+    padding:12px 18px;border-radius:2px;font-family:var(--font-mono);font-size:12px;
+    max-width:min(520px,92vw);box-shadow:0 6px 24px rgba(0,0,0,.35);display:none;
+  }
+  .flash.show{display:block;}
+  .flash.err{border-color:var(--rust);}
+
   /* ---- registration modal ---- */
   .modal-overlay{
     display:none;position:fixed;inset:0;background:rgba(11,35,56,.82);z-index:100;
@@ -153,6 +162,7 @@
   .field input[type=text],.field input[type=email],.field input[type=number],.field select{
     width:100%;padding:9px 10px;border:1px solid var(--line-light);background:#fff;font-family:var(--font-body);font-size:13.5px;border-radius:2px;
   }
+  .field input[readonly]{background:#f3ecda;color:#555;cursor:not-allowed;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .radio-group{display:flex;gap:14px;font-size:13px;}
   .radio-group label{display:flex;align-items:center;gap:6px;font-family:var(--font-body);text-transform:none;letter-spacing:0;color:var(--ink);}
@@ -183,6 +193,7 @@
   .link-card:hover{background:var(--ink-2);}
   .link-card .link-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);}
   .link-card .link-title{font-family:var(--font-display);font-size:14.5px;}
+  .link-card.pending{opacity:.5;cursor:default;}
 
   footer{padding:36px 32px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--parchment-dim);border-top:1px solid var(--line);}
 
@@ -199,9 +210,9 @@
 <header class="topbar">
   <div class="brand">
     <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <path d="M13 2 L13 18" stroke="#c99a3a" stroke-width="1.4"/>
-      <path d="M13 6 L22 9 L13 12 Z" fill="#c99a3a"/>
-      <path d="M4 20 Q13 24 22 20 L20 22 Q13 25 6 22 Z" fill="#efe6d2"/>
+      <path d="M13 2 L13 18" stroke="#c99a3a" stroke-width="1.4"></path>
+      <path d="M13 6 L22 9 L13 12 Z" fill="#c99a3a"></path>
+      <path d="M4 20 Q13 24 22 20 L20 22 Q13 25 6 22 Z" fill="#efe6d2"></path>
     </svg>
     <div>
       <div class="brand-text">MiniMax World Fleet</div>
@@ -215,8 +226,8 @@
     <a href="#links-anchor">Useful Links</a>
   </nav>
   <div style="display:flex;gap:10px;">
-    <button class="btn-outline" onclick="openLogin()">Log In</button>
-    <button class="btn-brass" onclick="openModal()">Register</button>
+    <button class="btn-outline" id="btnLogin" onclick="handleAuthButton()">Log In</button>
+    <button class="btn-brass" id="btnRegister" onclick="openModal()">Register</button>
   </div>
 </header>
 
@@ -227,7 +238,7 @@
     <p class="lead">A living chart of every MiniMax hull under construction or under sail — who built it, where it lives, and how many have followed the same plans. Register your boat in under a minute.</p>
     <div class="hero-actions">
       <button class="btn-brass" onclick="openModal()">Add my boat to the chart</button>
-      <a href="#map-anchor"><button class="btn-outline">Explore the fleet</button></a>
+      <a class="btn-outline" href="#map-anchor">Explore the fleet</a>
     </div>
   </div>
   <div class="stats">
@@ -316,7 +327,7 @@
     </details>
     <details class="faq-item">
       <summary>How do I update my project status later (planning → building → sailing)?</summary>
-      <p>Log in with the email you registered with and edit your entry at any time — no need to register again.</p>
+      <p>Click <strong>Log In</strong>, enter the email you registered with, and follow the sign-in link. Your entry loads pre-filled — change the status and save. Registering a second time is never needed, and never creates a duplicate boat.</p>
     </details>
     <details class="faq-item">
       <summary>Is this site run by Castlerock Yachtworks?</summary>
@@ -334,23 +345,23 @@
       <span class="link-label">Facebook Group</span>
       <span class="link-title">Castlerock Yachtworks Community</span>
     </a>
-    <a class="link-card" href="#" target="_blank" rel="noopener">
-      <span class="link-label">Reference</span>
+    <span class="link-card pending">
+      <span class="link-label">Reference · coming soon</span>
       <span class="link-title">MiniMax Class Rules &amp; Dimensions</span>
-    </a>
-    <a class="link-card" href="#" target="_blank" rel="noopener">
-      <span class="link-label">Forum</span>
+    </span>
+    <span class="link-card pending">
+      <span class="link-label">Forum · coming soon</span>
       <span class="link-title">RC Sailing Builders Forum</span>
-    </a>
-    <a class="link-card" href="#" target="_blank" rel="noopener">
-      <span class="link-label">Video</span>
+    </span>
+    <span class="link-card pending">
+      <span class="link-label">Video · coming soon</span>
       <span class="link-title">Build &amp; Rigging Tutorials</span>
-    </a>
-    <a class="link-card" href="#" target="_blank" rel="noopener">
-      <span class="link-label">Suppliers</span>
+    </span>
+    <span class="link-card pending">
+      <span class="link-label">Suppliers · coming soon</span>
       <span class="link-title">Fittings &amp; Hardware Sources</span>
-    </a>
-    <a class="link-card" href="#" target="_blank" rel="noopener">
+    </span>
+    <a class="link-card" href="https://www.windy.com/" target="_blank" rel="noopener">
       <span class="link-label">Weather</span>
       <span class="link-title">Wind Forecast for Pond Sailing</span>
     </a>
@@ -367,7 +378,7 @@
     <form onsubmit="return handleLogin(event)">
       <div class="field">
         <label>Email address ·</label>
-        <input type="email" name="email" required placeholder="you@example.com">
+        <input type="email" name="email" required="" placeholder="you@example.com">
       </div>
       <p style="font-size:12px;color:#555;margin:-6px 0 4px;">We'll email you a one-click sign-in link — no password needed.</p>
       <p id="loginStatus" style="font-family:var(--font-mono);font-size:11.5px;color:var(--brass-dim);min-height:16px;margin:2px 0 8px;"></p>
@@ -380,12 +391,12 @@
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <button class="close" onclick="closeModal()">✕</button>
-    <h3>Chart your MiniMax</h3>
-    <div class="sub">Takes about a minute · fields marked with a dot are required</div>
+    <h3 id="regTitle">Chart your MiniMax</h3>
+    <div class="sub" id="regSub">Takes about a minute · fields marked with a dot are required</div>
     <form id="regForm" onsubmit="return handleSubmit(event)">
       <div class="field">
         <label>Email address ·</label>
-        <input type="email" name="email" required placeholder="you@example.com">
+        <input type="email" name="email" required="" placeholder="you@example.com">
       </div>
       <div class="field">
         <label>Display name (public, optional)</label>
@@ -394,7 +405,7 @@
       <div class="field">
         <label>I am a ·</label>
         <div class="radio-group">
-          <label><input type="radio" name="role" value="builder" checked> Builder</label>
+          <label><input type="radio" name="role" value="builder" checked=""> Builder</label>
           <label><input type="radio" name="role" value="owner"> Owner</label>
           <label><input type="radio" name="role" value="both"> Both</label>
         </div>
@@ -416,7 +427,7 @@
       <div class="row2">
         <div class="field">
           <label>Country ·</label>
-          <input type="text" name="country" required placeholder="e.g. Portugal">
+          <input type="text" name="country" required="" placeholder="e.g. Portugal">
         </div>
         <div class="field">
           <label>Island / Region</label>
@@ -429,7 +440,7 @@
       </div>
       <div class="field">
         <label>Boat photo URL (optional for now)</label>
-        <input type="text" name="photo_url" placeholder="Paste a link to a photo — file upload comes later">
+        <input type="text" name="photo_url" placeholder="Paste an https:// link to a photo — file upload comes later">
       </div>
       <div class="check-line">
         <input type="checkbox" name="public_profile" id="pub"><label for="pub">Show a public profile with my name, photo and locality on the map.</label>
@@ -438,10 +449,12 @@
         <input type="checkbox" name="allow_contact" id="contact"><label for="contact">Allow other registered sailors to request contact with me (email stays hidden either way).</label>
       </div>
       <p id="regStatus" style="font-family:var(--font-mono);font-size:11.5px;color:var(--brass-dim);min-height:16px;margin:10px 0 0;"></p>
-      <button type="submit" class="btn-brass submit">Add me to the chart</button>
+      <button type="submit" class="btn-brass submit" id="regSubmit">Add me to the chart</button>
     </form>
   </div>
 </div>
+
+<div class="flash" id="flash"></div>
 
 <footer>
   MiniMax World Fleet Map — a fan-built companion to Castlerock Yachtworks' MiniMax class · Prototype build, not affiliated with Castlerock Yachtworks
@@ -452,39 +465,63 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  /* ------------------------------------------------------------------
+     v0.7-alpha changelog
+     · boats.insert  ->  boats.upsert({ onConflict: 'user_id' })
+       Fixes error 23505 (duplicate key) when someone registers twice.
+       REQUIRES an RLS policy allowing UPDATE (and SELECT) of own row:
+         create policy "own row update" on boats for update
+           using (auth.uid() = user_id) with check (auth.uid() = user_id);
+         create policy "own row select" on boats for select
+           using (auth.uid() = user_id);
+     · Signed-in users now edit in place: the form pre-fills from their
+       existing row and saves immediately, with no second magic link.
+     · Form data is no longer lost if a save fails.
+     · Popup content is HTML-escaped; photo URLs must be http(s).
+     · Blocking alert() replaced with a dismissible flash banner.
+     ------------------------------------------------------------------ */
+
   // ---- Supabase project connection ----
   const SUPABASE_URL = 'https://fftavybqhrvjbeofqrnc.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdGF2eWJxaHJ2amJlb2Zxcm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI0NTMsImV4cCI6MjEwMjcwODQ1M30.2plNkkCD__49SKfcuoVSinvKlApGiX750r4bPbBlkR0';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ---- live fleet: real registrations only, loaded from Supabase. Empty until people register. ----
-  let fleet = [];
-
-  const SITE_VERSION = 'v0.6-alpha · 19 Aug 2026';
+  const SITE_VERSION = 'v0.7-alpha · 20 Aug 2026';
   document.getElementById('versionTag').textContent = SITE_VERSION;
 
-  async function loadFleetFromSupabase(){
-    try {
-      const { data, error } = await sb.from('public_fleet').select('*');
-      if (error) { console.error('Could not load public_fleet:', error.message); return; }
-      fleet = (data || [])
-        .filter(r => r.lat !== null && r.lng !== null)
-        .map(r => ({
-          name: r.display_name || 'A MiniMax sailor',
-          lat: r.lat, lng: r.lng,
-          country: r.country, locality: [r.locality, r.region].filter(Boolean).join(', '),
-          status: r.status, boats: r.boats_built || 1, role: r.role, photo: r.photo_url || null
-        }));
-    } catch (err) {
-      console.error('Fleet load failed (safe to ignore in preview sandboxes):', err);
-    }
-    renderFleet(document.querySelector('.filters button.active')?.dataset.filter || 'all');
-    const caption = document.querySelector('.map-caption');
-    if (caption) caption.textContent = fleet.length === 0
-      ? 'No boats registered yet — be the first to add a pin. Only approximate locality is ever public; exact coordinates are never stored or shown.'
-      : `Showing ${fleet.length} registered MiniMax sailor${fleet.length===1?'':'s'}. Only approximate locality is ever public; exact coordinates are never stored or shown.`;
+  // ---- live fleet: real registrations only, loaded from Supabase ----
+  let fleet = [];
+  let currentSession = null;
+  let myEntry = null;
+
+  const regForm    = document.getElementById('regForm');
+  const regTitle   = document.getElementById('regTitle');
+  const regSub     = document.getElementById('regSub');
+  const regSubmit  = document.getElementById('regSubmit');
+  const regStatus  = document.getElementById('regStatus');
+  const btnLogin   = document.getElementById('btnLogin');
+  const btnRegister= document.getElementById('btnRegister');
+  const flashEl    = document.getElementById('flash');
+
+  // ---- helpers ----
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function safePhoto(url){
+    const u = (url || '').trim();
+    return /^https?:\/\//i.test(u) ? u : null;
+  }
+  let flashTimer = null;
+  function flash(msg, isError){
+    flashEl.textContent = msg;
+    flashEl.classList.toggle('err', !!isError);
+    flashEl.classList.add('show');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => flashEl.classList.remove('show'), isError ? 9000 : 5000);
   }
 
+  // ---- map ----
   const map = L.map('map', {scrollWheelZoom:false}).setView([30, 0], 2);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
@@ -513,14 +550,17 @@
     markers = [];
     fleet.filter(f => filter==='all' || f.status===filter).forEach(f=>{
       const m = L.marker([f.lat,f.lng], {icon: boatIcon(f.status)});
-      const photoHtml = f.photo ? `<img src="${f.photo}" alt="${f.name}'s boat">` : '';
+      const photo = safePhoto(f.photo);
+      const photoHtml = photo ? `<img src="${esc(photo)}" alt="Boat photo">` : '';
+      const place = [f.locality, f.country].filter(Boolean).join(', ');
+      const statusClass = ['sailing','building','planning'].includes(f.status) ? f.status : 'planning';
       m.bindPopup(`
         <div class="popup-card">
           ${photoHtml}
-          <div class="name">${f.name}</div>
-          <div class="loc">${f.locality}, ${f.country}</div>
-          <span class="badge ${f.status}">${f.status}</span>
-          <div class="meta">${f.role} · ${f.boats} MiniMax built</div>
+          <div class="name">${esc(f.name)}</div>
+          <div class="loc">${esc(place)}</div>
+          <span class="badge ${statusClass}">${esc(f.status)}</span>
+          <div class="meta">${esc(f.role)} · ${esc(f.boats)} MiniMax built</div>
         </div>
       `);
       markers.push(m);
@@ -538,14 +578,37 @@
     });
   });
 
+  async function loadFleetFromSupabase(){
+    try {
+      const { data, error } = await sb.from('public_fleet').select('*');
+      if (error) { console.error('Could not load public_fleet:', error.message); return; }
+      fleet = (data || [])
+        .filter(r => r.lat !== null && r.lng !== null)
+        .map(r => ({
+          name: r.display_name || 'A MiniMax sailor',
+          lat: r.lat, lng: r.lng,
+          country: r.country, locality: [r.locality, r.region].filter(Boolean).join(', '),
+          status: r.status, boats: r.boats_built || 1, role: r.role, photo: r.photo_url || null
+        }));
+    } catch (err) {
+      console.error('Fleet load failed (safe to ignore in preview sandboxes):', err);
+    }
+    renderFleet(document.querySelector('.filters button.active')?.dataset.filter || 'all');
+    const caption = document.querySelector('.map-caption');
+    if (caption) caption.textContent = fleet.length === 0
+      ? 'No boats registered yet — be the first to add a pin. Only approximate locality is ever public; exact coordinates are never stored or shown.'
+      : `Showing ${fleet.length} registered MiniMax sailor${fleet.length===1?'':'s'}. Only approximate locality is ever public; exact coordinates are never stored or shown.`;
+  }
+
   // ---- stats ----
   function animateNum(el, target){
+    if (el._timer) clearInterval(el._timer);
     let n=0; const step = Math.max(1, Math.ceil(target/30));
-    const t = setInterval(()=>{ n=Math.min(target,n+step); el.textContent=n; if(n>=target) clearInterval(t); }, 30);
+    el._timer = setInterval(()=>{ n=Math.min(target,n+step); el.textContent=n; if(n>=target) clearInterval(el._timer); }, 30);
   }
   async function loadStatsFromSupabase(){
     try {
-      const { data, error } = await sb.from('fleet_stats').select('*').single();
+      const { data, error } = await sb.from('fleet_stats').select('*').maybeSingle();
       if (error) { console.error('Could not load fleet_stats:', error.message); return; }
       if (!data) return;
       animateNum(document.getElementById('stat-boats'), data.total_boats || 0);
@@ -556,8 +619,6 @@
       console.error('Stats load failed (safe to ignore in preview sandboxes):', err);
     }
   }
-  loadStatsFromSupabase(); // counts EVERY registration, public profile or not
-  loadFleetFromSupabase(); // draws pins only for those who opted into a public profile
 
   // ---- geocoding: turns country/region/locality into approximate lat/lng ----
   // Uses OpenStreetMap's free Nominatim service. Fine for occasional registrations;
@@ -573,42 +634,161 @@
     return { lat: null, lng: null };
   }
 
-  // ---- registration modal ----
-  function openModal(){ document.getElementById('modalOverlay').classList.add('open'); }
+  // ---- modals ----
+  function openModal(){
+    regStatus.textContent = '';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
   function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+  function openLogin(){
+    document.getElementById('loginStatus').textContent = '';
+    document.getElementById('loginOverlay').classList.add('open');
+  }
+  function closeLogin(){ document.getElementById('loginOverlay').classList.remove('open'); }
 
+  document.querySelectorAll('.modal-overlay').forEach(ov=>{
+    ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(o=>o.classList.remove('open'));
+  });
+
+  // ---- form read / prefill ----
+  function readForm(){
+    return {
+      display_name: regForm.display_name.value.trim(),
+      role: regForm.role.value,
+      boats_built: parseInt(regForm.boats_built.value || '1', 10),
+      status: regForm.status.value,
+      country: regForm.country.value.trim(),
+      region: regForm.region.value.trim(),
+      locality: regForm.locality.value.trim(),
+      photo_url: regForm.photo_url.value.trim(),
+      public_profile: regForm.public_profile.checked,
+      allow_contact: regForm.allow_contact.checked
+    };
+  }
+
+  function prefillForm(row){
+    if (!row) return;
+    if (row.email) regForm.email.value = row.email;
+    regForm.display_name.value = row.display_name || '';
+    const roleInput = regForm.querySelector(`input[name="role"][value="${row.role || 'builder'}"]`);
+    if (roleInput) roleInput.checked = true;
+    regForm.boats_built.value = (row.boats_built != null) ? row.boats_built : 1;
+    regForm.status.value = row.status || 'planning';
+    regForm.country.value = row.country || '';
+    regForm.region.value = row.region || '';
+    regForm.locality.value = row.locality || '';
+    regForm.photo_url.value = row.photo_url || '';
+    regForm.public_profile.checked = !!row.public_profile;
+    regForm.allow_contact.checked = !!row.allow_contact;
+  }
+
+  function applyAuthUI(){
+    const signedIn = !!currentSession;
+    btnLogin.textContent = signedIn ? 'Log Out' : 'Log In';
+    btnRegister.textContent = signedIn ? 'My Entry' : 'Register';
+
+    if (signedIn) {
+      regForm.email.value = currentSession.user.email;
+      regForm.email.readOnly = true;
+      regSub.textContent = 'Signed in as ' + currentSession.user.email + ' · changes save immediately';
+      if (myEntry) {
+        regTitle.textContent = 'Update your MiniMax';
+        regSubmit.textContent = 'Save changes';
+      } else {
+        regTitle.textContent = 'Chart your MiniMax';
+        regSubmit.textContent = 'Add me to the chart';
+      }
+    } else {
+      regForm.email.readOnly = false;
+      regTitle.textContent = 'Chart your MiniMax';
+      regSub.textContent = 'Takes about a minute · fields marked with a dot are required';
+      regSubmit.textContent = 'Add me to the chart';
+    }
+  }
+
+  function handleAuthButton(){ currentSession ? logout() : openLogin(); }
+
+  async function logout(){
+    await sb.auth.signOut();
+    currentSession = null;
+    myEntry = null;
+    regForm.reset();
+    applyAuthUI();
+    flash('Signed out.');
+  }
+
+  async function loadMyEntry(){
+    if (!currentSession) return null;
+    try {
+      const { data, error } = await sb.from('boats').select('*')
+        .eq('user_id', currentSession.user.id).maybeSingle();
+      if (error) { console.error('Could not load own entry:', error.message); return null; }
+      return data || null;
+    } catch (err) { console.error('Own-entry load failed:', err); return null; }
+  }
+
+  // ---- the single write path: creates on first save, updates thereafter ----
+  async function saveEntry(entry){
+    const { lat, lng } = await geocodeLocation(entry.country, entry.region, entry.locality);
+    const { error } = await sb.from('boats').upsert({
+      user_id: currentSession.user.id,
+      email: currentSession.user.email,
+      display_name: entry.display_name || null,
+      role: entry.role,
+      boats_built: entry.boats_built,
+      status: entry.status,
+      country: entry.country,
+      region: entry.region,
+      locality: entry.locality,
+      lat, lng,
+      photo_url: safePhoto(entry.photo_url),
+      public_profile: entry.public_profile,
+      allow_contact: entry.allow_contact
+    }, { onConflict: 'user_id' });
+    return error;
+  }
+
+  // ---- registration / update submit ----
   async function handleSubmit(e){
     e.preventDefault();
-    const form = e.target;
-    const statusEl = document.getElementById('regStatus');
-    const email = form.email.value.trim();
+    const entry = readForm();
 
-    // Save the rest of the form so we can finish the registration once the
-    // person clicks the magic link and returns to the site, signed in.
-    const pending = {
-      display_name: form.display_name.value.trim(),
-      role: form.role.value,
-      boats_built: parseInt(form.boats_built.value || '1', 10),
-      status: form.status.value,
-      country: form.country.value.trim(),
-      region: form.region.value.trim(),
-      locality: form.locality.value.trim(),
-      photo_url: form.photo_url.value.trim(),
-      public_profile: form.public_profile.checked,
-      allow_contact: form.allow_contact.checked
-    };
-    localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...pending }));
+    // Already signed in: save straight away, no second magic link.
+    if (currentSession) {
+      regSubmit.disabled = true;
+      regStatus.textContent = 'Saving…';
+      const error = await saveEntry(entry);
+      regSubmit.disabled = false;
+      if (error) {
+        regStatus.textContent = 'Could not save: ' + error.message;
+        return false;
+      }
+      regStatus.textContent = 'Saved.';
+      myEntry = await loadMyEntry();
+      applyAuthUI();
+      loadStatsFromSupabase();
+      loadFleetFromSupabase();
+      flash("You're on the chart. Thanks for keeping your entry up to date.");
+      setTimeout(closeModal, 900);
+      return false;
+    }
 
-    statusEl.textContent = 'Sending your sign-in link…';
+    // Not signed in: stash the form and email a magic link.
+    const email = regForm.email.value.trim();
+    localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...entry }));
+    regSubmit.disabled = true;
+    regStatus.textContent = 'Sending your sign-in link…';
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
-    if (error) { statusEl.textContent = 'Something went wrong: ' + error.message; return; }
-    statusEl.textContent = `Check ${email} for a sign-in link — clicking it finishes your registration.`;
+    regSubmit.disabled = false;
+    if (error) { regStatus.textContent = 'Something went wrong: ' + error.message; return false; }
+    regStatus.textContent = `Check ${email} for a sign-in link — clicking it finishes your registration.`;
+    return false;
   }
 
   // ---- login modal ----
-  function openLogin(){ document.getElementById('loginOverlay').classList.add('open'); }
-  function closeLogin(){ document.getElementById('loginOverlay').classList.remove('open'); }
-
   async function handleLogin(e){
     e.preventDefault();
     const form = e.target;
@@ -616,46 +796,71 @@
     const email = form.email.value.trim();
     statusEl.textContent = 'Sending your sign-in link…';
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
-    if (error) { statusEl.textContent = 'Something went wrong: ' + error.message; return; }
+    if (error) { statusEl.textContent = 'Something went wrong: ' + error.message; return false; }
     statusEl.textContent = `Check ${email} for a sign-in link.`;
+    return false;
   }
 
-  // ---- runs on every page load: finishes a pending registration once the
-  // person is back and signed in after clicking their magic link ----
-  async function completePendingRegistrationIfAny(){
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-
+  // ---- finishes a pending registration after the magic link returns ----
+  let pendingLock = null;
+  function completePendingRegistrationIfAny(){
+    if (!pendingLock) pendingLock = runPendingRegistration().finally(()=>{ pendingLock = null; });
+    return pendingLock;
+  }
+  async function runPendingRegistration(){
+    if (!currentSession) return;
     const raw = localStorage.getItem('minimax_pending_registration');
-    if (!raw) return; // signed in, but nothing waiting to be saved (e.g. just logging in)
-    const pending = JSON.parse(raw);
-    if (pending.email.toLowerCase() !== session.user.email.toLowerCase()) return;
+    if (!raw) return; // signed in with nothing waiting (e.g. plain log-in)
 
-    const { lat, lng } = await geocodeLocation(pending.country, pending.region, pending.locality);
+    let pending;
+    try { pending = JSON.parse(raw); }
+    catch { localStorage.removeItem('minimax_pending_registration'); return; }
 
-    const { error } = await sb.from('boats').insert({
-      user_id: session.user.id,
-      email: session.user.email,
-      display_name: pending.display_name || null,
-      role: pending.role,
-      boats_built: pending.boats_built,
-      status: pending.status,
-      country: pending.country,
-      region: pending.region,
-      locality: pending.locality,
-      lat, lng,
-      photo_url: pending.photo_url || null,
-      public_profile: pending.public_profile,
-      allow_contact: pending.allow_contact
-    });
+    if (!pending.email || pending.email.toLowerCase() !== currentSession.user.email.toLowerCase()) return;
 
+    const error = await saveEntry(pending);
     localStorage.removeItem('minimax_pending_registration');
-    if (error) { alert('Registration could not be saved: ' + error.message); return; }
-    alert("You're on the chart! Thanks for registering your MiniMax.");
-    loadStatsFromSupabase();
-    loadFleetFromSupabase();
+
+    if (error) {
+      // Keep the details on screen so nothing typed is lost.
+      prefillForm(pending);
+      openModal();
+      regStatus.textContent = 'Could not save: ' + error.message + ' — your details are still here, press save to try again.';
+      flash('Your registration was not saved. Details kept in the form.', true);
+      return;
+    }
+    flash("You're on the chart. Thanks for registering your MiniMax.");
   }
-  completePendingRegistrationIfAny();
+
+  // ---- boot ----
+  async function init(){
+    const { data: { session } } = await sb.auth.getSession();
+    currentSession = session || null;
+
+    if (currentSession) {
+      await completePendingRegistrationIfAny();
+      myEntry = await loadMyEntry();
+      if (myEntry) prefillForm(myEntry);
+    }
+    applyAuthUI();
+    loadStatsFromSupabase(); // counts EVERY registration, public profile or not
+    loadFleetFromSupabase(); // draws pins only for those who opted into a public profile
+  }
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    currentSession = session || null;
+    if (event === 'SIGNED_IN') {
+      await completePendingRegistrationIfAny();
+      myEntry = await loadMyEntry();
+      if (myEntry) prefillForm(myEntry);
+      loadStatsFromSupabase();
+      loadFleetFromSupabase();
+    }
+    applyAuthUI();
+  });
+
+  init();
 </script>
-</body>
-</html>
+
+
+</body></html>
