@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;"><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MiniMax World Fleet Map</title>
@@ -83,7 +83,25 @@
     padding:8px 14px;border-radius:2px;cursor:pointer;
   }
   .filters button.active{border-color:var(--brass);color:var(--brass);}
-  #map{max-width:1180px;margin:0 auto;height:520px;border:1px solid var(--line);filter:sepia(8%) saturate(85%);}
+
+  /* map + overlays */
+  .map-wrap{position:relative;max-width:1180px;margin:0 auto;}
+  #map{height:520px;border:1px solid var(--line);background:#0e2a40;filter:sepia(8%) saturate(85%);}
+  #map.chart-fallback{filter:none;}
+  .map-empty{position:absolute;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;pointer-events:none;}
+  .map-empty.show{display:flex;}
+  .map-empty-inner{
+    pointer-events:auto;background:rgba(11,35,56,.92);border:1px solid var(--brass-dim);
+    padding:24px 26px;text-align:center;max-width:380px;
+  }
+  .map-empty-inner .t{font-family:var(--font-display);font-size:18px;margin-bottom:8px;}
+  .map-empty-inner p{font-size:13px;color:var(--parchment-dim);margin:0 0 16px;}
+  .map-note{
+    position:absolute;left:10px;bottom:10px;z-index:450;display:none;max-width:min(560px,86%);
+    background:rgba(11,35,56,.92);border-left:2px solid var(--brass);padding:8px 12px;
+    font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--parchment-dim);
+  }
+  .map-note.show{display:block;}
   .map-caption{max-width:1180px;margin:12px auto 0;font-family:var(--font-mono);font-size:11px;color:var(--parchment-dim);opacity:.75;}
 
   .leaflet-popup-content-wrapper{background:var(--parchment);color:var(--ink);border-radius:2px;}
@@ -102,8 +120,6 @@
   section.band{padding:64px 32px;max-width:1180px;margin:0 auto;}
   section.band > h2{font-family:var(--font-display);font-size:26px;text-align:center;margin:0 0 8px;}
   section.band > p.sub{text-align:center;color:var(--parchment-dim);font-size:14px;margin:0 auto 36px;max-width:640px;}
-  /* secondary heading inside a band (e.g. "Suppliers by region") */
-  section.band > h2.band-subhead{font-size:21px;margin:52px 0 8px;scroll-margin-top:88px;}
 
   .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);}
   .feat{background:var(--ink);padding:24px 22px;}
@@ -111,28 +127,40 @@
   .feat h3{font-family:var(--font-display);font-size:16px;margin:0 0 8px;}
   .feat p{font-size:13px;color:var(--parchment-dim);margin:0;}
 
-  /* ---- routes-to-a-boat panels: full width, stacked ---- */
+  /* ---- routes to a boat: full width, stacked, content centred ---- */
   .route-grid{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);}
-  .route{background:var(--ink);padding:28px 26px;}
+  .route{background:var(--ink);padding:30px 26px;text-align:center;}
   .route .step{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;}
   .route h3{font-family:var(--font-display);font-size:19px;margin:0 0 6px;}
   .route .price{font-family:var(--font-mono);font-size:22px;color:var(--parchment);font-weight:600;margin:2px 0 12px;}
   .route .price small{font-size:11px;color:var(--parchment-dim);font-weight:400;letter-spacing:.04em;}
-  .route p{font-size:13.5px;color:var(--parchment-dim);margin:0 0 14px;max-width:760px;}
-  .incl{list-style:none;padding:0;margin:0 0 18px;}
-  .incl li{font-size:13px;color:var(--parchment-dim);padding:5px 0 5px 20px;position:relative;border-bottom:1px dotted rgba(205,191,158,.18);}
+  .route p{font-size:13.5px;color:var(--parchment-dim);margin:0 auto 16px;max-width:720px;}
+  .incl{list-style:none;padding:0;margin:0 auto 20px;max-width:560px;}
+  .incl li{
+    font-size:13px;color:var(--parchment-dim);padding:6px 0;
+    border-bottom:1px dotted rgba(205,191,158,.18);
+  }
   .incl li:last-child{border-bottom:none;}
-  .incl li::before{content:"◆";position:absolute;left:0;color:var(--brass);font-size:8px;top:8px;}
-  .route .cta-inline{max-width:340px;}
+  .incl li::before{content:"◆";color:var(--brass);font-size:8px;margin-right:8px;vertical-align:2px;}
+  .route .cta-inline{display:block;max-width:340px;margin:0 auto;}
 
+  /* suppliers, nested inside the Route two panel */
+  .route-suppliers{margin-top:30px;padding-top:26px;border-top:1px solid var(--line);}
+  .route-suppliers h4{font-family:var(--font-display);font-size:19px;margin:0 0 6px;scroll-margin-top:88px;font-weight:600;}
+  .route-suppliers .sub-note{font-size:12.5px;color:var(--parchment-dim);margin:0 auto 22px;max-width:560px;}
   .supplier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);}
-  .supplier{background:var(--ink);padding:22px 24px;}
+  .supplier{background:var(--ink);padding:24px 22px;text-align:center;}
   .supplier .region{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin-bottom:8px;}
-  .supplier .who{font-family:var(--font-display);font-size:16px;margin-bottom:4px;}
-  .supplier p{font-size:12.5px;color:var(--parchment-dim);margin:0 0 10px;}
-  .supplier a.contact{font-family:var(--font-mono);font-size:12px;color:var(--brass);text-decoration:none;border-bottom:1px solid var(--brass-dim);word-break:break-word;}
+  .supplier .who{font-family:var(--font-display);font-size:16px;margin-bottom:6px;}
+  .supplier p{font-size:12.5px;color:var(--parchment-dim);margin:0 auto 12px;max-width:300px;}
+  .supplier a.contact{
+    display:inline-block;font-family:var(--font-mono);font-size:12px;color:var(--brass);
+    text-decoration:none;border-bottom:1px solid var(--brass-dim);word-break:break-word;cursor:pointer;
+  }
   .supplier a.contact:hover{color:var(--parchment);}
-  .supplier noscript .contact-plain{font-family:var(--font-mono);font-size:12px;color:var(--brass);word-break:break-word;}
+  .supplier a.contact + a.contact{margin-top:10px;}
+  .supplier noscript a.contact{display:inline-block;}
+
   .notice{
     border-left:2px solid var(--brass);background:var(--ink-2);padding:14px 18px;margin-top:22px;
     font-size:13px;color:var(--parchment-dim);
@@ -146,6 +174,7 @@
   .doc h3{font-family:var(--font-display);font-size:16.5px;margin:0 0 8px;}
   .doc p{font-size:13px;color:var(--parchment-dim);margin:0 0 16px;flex-grow:1;}
   .doc .draft-flag{font-family:var(--font-mono);font-size:10px;color:var(--rust);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+  .doc a[data-mail]{cursor:pointer;}
 
   /* ---- class at a glance ---- */
   .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:14px;}
@@ -268,8 +297,20 @@
     <button data-filter="building">Building</button>
     <button data-filter="planning">Planning</button>
   </div>
-  <div id="map"></div>
-  <p class="map-caption">Loading fleet data… Only approximate locality is ever public; exact coordinates are never stored or shown.</p>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-empty" id="mapEmpty">
+      <div class="map-empty-inner">
+        <div class="t" id="mapEmptyTitle">No boats on the chart yet</div>
+        <p id="mapEmptyText">The register is live and empty — the first pin is still available.</p>
+        <button class="btn-brass" id="mapEmptyBtn" onclick="openModal()">Add my boat</button>
+      </div>
+    </div>
+    <div class="map-note" id="mapNote"></div>
+  </div>
+
+  <p class="map-caption" id="mapCaption">Loading fleet data… Only approximate locality is ever public; exact coordinates are never stored or shown.</p>
 </section>
 
 <a id="shop-anchor"></a>
@@ -278,6 +319,7 @@
   <p class="sub">There are two routes: print it yourself from the official STL package, or buy printed parts from a licensed supplier in your region. Either way it starts with an STL licence from Castlerock Yachtworks.</p>
 
   <div class="route-grid">
+
     <div class="route">
       <div class="step">Route one</div>
       <h3>Build your own</h3>
@@ -291,7 +333,7 @@
         <li>Future file updates</li>
         <li>Entry into the official MiniMax Registry</li>
       </ul>
-      <a class="btn-brass cta-inline" href="https://castlerock.bigcartel.com" target="_blank" rel="noopener" style="width:100%;">Get the STL package</a>
+      <a class="btn-brass cta-inline" href="https://castlerock.bigcartel.com" target="_blank" rel="noopener">Get the STL package</a>
     </div>
 
     <div class="route">
@@ -305,39 +347,42 @@
         <li>A-rig and B-rig sail templates (PDF)</li>
         <li>Colour choices vary by supplier</li>
       </ul>
-    </div>
-  </div>
 
-  <h2 class="band-subhead" id="suppliers">Suppliers by region</h2>
-  <p class="sub" style="margin-bottom:20px;">Contact the supplier for your region directly — this page is not a checkout.</p>
+      <div class="route-suppliers">
+        <h4 id="suppliers">Suppliers by region</h4>
+        <p class="sub-note">Contact the supplier for your region directly — this page is not a checkout.</p>
 
-  <div class="supplier-grid">
-    <div class="supplier">
-      <div class="region">New Zealand · Australia · International</div>
-      <div class="who">Castlerock Yachtworks</div>
-      <p>Brett McCormack, Dunedin. A limited number of kits; lead time approximately two weeks. Message or email for details.</p>
-      <a class="contact" data-mail="castlerock" data-label="Email Castlerock Yachtworks">Email Castlerock Yachtworks</a>
-      <noscript><span class="contact-plain">castlerockyachts (at) gmail (dot) com</span></noscript>
-    </div>
-    <div class="supplier">
-      <div class="region">United Kingdom</div>
-      <div class="who">Neil Witt</div>
-      <p>UK kit supply. Also the designer of the launching-aid handle used by builders elsewhere.</p>
-      <a class="contact" data-mail="neil" data-label="Email Neil Witt">Email Neil Witt</a>
-      <noscript><span class="contact-plain">neil (at) pegasus18 (dot) com</span></noscript>
-    </div>
-    <div class="supplier">
-      <div class="region">United States · North America</div>
-      <div class="who">Mark Cooper — Cooper’s Wood Crafts</div>
-      <p>Houston, Texas. Package A (printed parts, both sail templates, shipping within the continental US) $50; optional spare B-rig parts +$10; launching-aid cradle +$10. Order form online.</p>
-      <a class="contact" href="https://cooperswoodcrafts.com/mini-max-rc-sailboat-by-castlerock-yacht-works" target="_blank" rel="noopener">cooperswoodcrafts.com · order form</a>
-    </div>
-    <div class="supplier">
-      <div class="region">Europe</div>
-      <div class="who">Being established</div>
-      <p>European kit supply is now being set up. Interested builders should contact Brett directly and he will put you in touch with the appropriate supplier.</p>
-      <a class="contact" data-mail="castlerock" data-subject="MiniMax kit - Europe" data-label="Email Brett about Europe">Email Brett about Europe</a>
-      <noscript><span class="contact-plain">castlerockyachts (at) gmail (dot) com</span></noscript>
+        <div class="supplier-grid">
+          <div class="supplier">
+            <div class="region">New Zealand · Australia · International</div>
+            <div class="who">Castlerock Yachtworks</div>
+            <p>Brett McCormack, Dunedin. A limited number of kits; lead time approximately two weeks. Message or email for details.</p>
+            <a class="contact" data-mail="castlerock">Email Castlerock Yachtworks</a>
+            <noscript><a class="contact" href="https://castlerock.bigcartel.com" target="_blank" rel="noopener">Contact via the Castlerock store</a></noscript>
+          </div>
+          <div class="supplier">
+            <div class="region">United Kingdom</div>
+            <div class="who">Neil Witt</div>
+            <p>UK kit supply. Also the designer of the launching-aid handle used by builders elsewhere.</p>
+            <a class="contact" data-mail="neil">Email Neil Witt</a>
+            <noscript><a class="contact" href="https://www.facebook.com/search/groups/?q=MiniMax%20RC%20Yacht%20Builder" target="_blank" rel="noopener">Ask in the MiniMax builders group</a></noscript>
+          </div>
+          <div class="supplier">
+            <div class="region">United States · North America</div>
+            <div class="who">Mark Cooper — Cooper’s Wood Crafts</div>
+            <p>Houston, Texas. Package A (printed parts, both sail templates, shipping within the continental US) $50; optional spare B-rig parts +$10; launching-aid cradle +$10.</p>
+            <a class="contact" href="https://cooperswoodcrafts.com/mini-max-rc-sailboat-by-castlerock-yacht-works" target="_blank" rel="noopener">cooperswoodcrafts.com · order form</a>
+            <a class="contact" data-mail="cooper">Email Mark Cooper</a>
+          </div>
+          <div class="supplier">
+            <div class="region">Europe</div>
+            <div class="who">Being established</div>
+            <p>European kit supply is now being set up. Interested builders should contact Brett directly and he will put you in touch with the appropriate supplier.</p>
+            <a class="contact" data-mail="castlerock" data-subject="MiniMax kit - Europe">Email Brett about Europe</a>
+            <noscript><a class="contact" href="https://castlerock.bigcartel.com" target="_blank" rel="noopener">Contact via the Castlerock store</a></noscript>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -352,6 +397,9 @@
   <h2>Class Library</h2>
   <p class="sub">The founding documents of the class, in one place</p>
   <div class="doc-grid" id="docGrid"></div>
+  <noscript>
+    <p class="map-caption" style="text-align:center;">This list is built by JavaScript. Without it, the class documents are available from the <a href="https://castlerock.bigcartel.com" target="_blank" rel="noopener" style="color:var(--brass);">Castlerock Yachtworks store</a>.</p>
+  </noscript>
   <p class="map-caption" style="text-align:center;max-width:640px;margin:18px auto 0;">Documents are the work of Brett McCormack and are reproduced here with the class’s interests in mind. If anything here should not be public, it comes down on request.</p>
 </section>
 
@@ -556,42 +604,37 @@
   /* ==================================================================
      MiniMax World Fleet Map
 
-     v0.9-alpha changelog
-     · "How to get a MiniMax": Route one and Route two are now full-width
-       stacked panels. The "See suppliers by region" button is gone —
-       suppliers are a proper heading immediately below.
-     · Supplier and library email addresses are no longer in the HTML
-       source. They are assembled at runtime from parts (see MAIL below),
-       with a readable <noscript> fallback for anyone without JavaScript.
-     · Requires the SQL migration shipped with this version: public_fleet
-       and fleet_stats are now views over SECURITY DEFINER functions, so
-       the anon role needs no privileges on public.boats at all, and every
-       published coordinate is rounded to 2 decimals (~1 km) server-side.
-
-     v0.8-alpha changelog
-     · Shop replaced by "How to get a MiniMax": STL route (€25) vs printed
-       kits, with the four regional suppliers (NZ/AU/Intl, UK, US, Europe).
-     · New "Class Library" section serving the concept, build manual and
-       draft class rules (see DOCS config below).
-     · New "class at a glance" figures under FAQs (see CLASS_FACTS below).
-     · FAQs rewritten with real class facts; licence/order-ID question added.
-     · Registration form gains an optional order_id (STL licence reference)
-       for future validation by the class owner. Never displayed publicly.
-     · Map popups and stats show a "licence verified" mark when boats.verified
-       is true. Verification is set only by an admin, never by the user.
-     · Useful Links now point at real destinations.
+     v0.9.1-alpha changelog
+     · Route one / Route two panels are centred, and the regional
+       suppliers now live inside the Route two panel as nested cards
+       rather than as a separate section.
+     · Email addresses are no longer written into the DOM at load time.
+       The mailto: href is assembled only on real human interaction
+       (pointerdown / hover / focus / keypress), so a scraper that
+       renders the page in a headless browser and dumps the DOM still
+       finds nothing. No (at)/(dot) obfuscation anywhere — the noscript
+       fallbacks point at public destinations instead.
+     · Mark Cooper's address added (published on his own contact page).
+     · Map diagnostics: if the basemap tiles fail to load the page draws
+       a plain graticule chart instead of showing a dead grey rectangle,
+       and says why. An explicit empty state covers "no boats yet" and
+       "fleet data could not be loaded".
+     · NOTE ON PREVIEW SANDBOXES: if a host injects a restrictive
+       Content-Security-Policy meta tag without img-src / connect-src,
+       everything external falls back to default-src and the tile server,
+       Supabase and Nominatim are all blocked. That is a hosting issue,
+       not a bug in this file — the fallbacks above make it visible.
      ================================================================== */
 
   /* ---- EDIT-ME BLOCK: the only numbers and files you'll change often ---- */
-  const SITE_VERSION = 'v0.9-alpha · 19 Sep 2026';
+  const SITE_VERSION = 'v0.9.1-alpha · 19 Aug 2026';
 
-  /* Email addresses, split so they are not scrapable from the HTML.
-     Add a new supplier by adding a key here and a matching
-     data-mail="key" on the <a class="contact"> in the markup. */
+  /* Email addresses, split so they never appear whole in the HTML source.
+     Add a supplier by adding a key here plus data-mail="key" on the <a>. */
   const MAIL = {
     castlerock: ['castlerockyachts', 'gmail.com'],
-    neil:       ['neil', 'pegasus18.com']
-    // cooper:  ['user', 'domain.com']   <-- add Mark Cooper's address here
+    neil:       ['neil', 'pegasus18.com'],
+    cooper:     ['mdcooper1', 'att.net']
   };
 
   const CLASS_FACTS = {
@@ -637,6 +680,8 @@
   document.getElementById('versionTag').textContent = SITE_VERSION;
 
   let fleet = [];
+  let fleetLoadFailed = false;
+  let fleetLoadReason = '';
   let currentSession = null;
   let myEntry = null;
 
@@ -666,22 +711,50 @@
     clearTimeout(flashTimer);
     flashTimer = setTimeout(() => flashEl.classList.remove('show'), isError ? 9000 : 5000);
   }
-
-  // ---- email addresses assembled at runtime ----
-  function mailAddress(key){
-    const parts = MAIL[key];
-    if (!parts) return null;
-    return parts[0] + String.fromCharCode(64) + parts[1];
+  /* A blocked request and a genuinely offline network look the same to JS;
+     both surface as a TypeError from fetch. Worth naming in the UI because
+     the cure is completely different from a database error. */
+  function looksBlocked(err){
+    const m = String((err && err.message) || err || '').toLowerCase();
+    return m.includes('failed to fetch') || m.includes('load failed') ||
+           m.includes('networkerror') || m.includes('network request failed');
   }
-  function buildEmailLinks(root){
-    (root || document).querySelectorAll('a[data-mail]').forEach(el => {
-      const addr = mailAddress(el.dataset.mail);
-      if (!addr) return;
-      const subject = el.dataset.subject
-        ? '?subject=' + encodeURIComponent(el.dataset.subject) : '';
-      el.setAttribute('href', 'mailto:' + addr + subject);
-      el.setAttribute('title', addr);
-      if (!el.dataset.keepLabel) el.textContent = el.dataset.label || addr;
+
+  // ---- email addresses assembled only on human interaction ----
+  function mailAddress(key){
+    const p = MAIL[key];
+    return p ? p[0] + String.fromCharCode(64) + p[1] : null;
+  }
+  /* The address is never in the DOM until someone points at the link, so
+     a headless-browser scraper that renders and dumps the page gets nothing.
+     pointerdown fires before click, so the first click still works, and it
+     also fires on right-click, so "Copy email address" works too. */
+  function armEmailLinks(root){
+    (root || document).querySelectorAll('a[data-mail]:not([data-armed])').forEach(el => {
+      if (!MAIL[el.dataset.mail]) return;
+      el.dataset.armed = '1';
+      el.setAttribute('role', 'link');
+      el.setAttribute('tabindex', '0');
+
+      const arm = () => {
+        if (el.dataset.ready) return;
+        const subject = el.dataset.subject
+          ? '?subject=' + encodeURIComponent(el.dataset.subject) : '';
+        el.setAttribute('href', 'mailto:' + mailAddress(el.dataset.mail) + subject);
+        el.dataset.ready = '1';
+      };
+
+      ['pointerdown','pointerenter','touchstart','focus','contextmenu']
+        .forEach(ev => el.addEventListener(ev, arm, { passive: true }));
+
+      // an <a> with no href is not activated by the keyboard, so do it here
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          arm();
+          window.location.href = el.getAttribute('href');
+        }
+      });
     });
   }
 
@@ -690,7 +763,7 @@
     document.getElementById('docGrid').innerHTML = DOCS.map(d => {
       const cta = d.access === 'public'
         ? `<a class="btn-outline" href="${esc(d.file)}" target="_blank" rel="noopener" style="width:100%;">Open PDF</a>`
-        : `<a class="btn-outline" data-mail="${esc(d.mail)}" data-subject="${esc(d.subject || '')}" data-label="${esc(d.cta || 'Email us')}" data-keep-label="1" style="width:100%;">${esc(d.cta || 'Email us')}</a>`;
+        : `<a class="btn-outline" data-mail="${esc(d.mail)}" data-subject="${esc(d.subject || '')}" style="width:100%;">${esc(d.cta || 'Email us')}</a>`;
       return `<div class="doc">
         <div class="kind">${esc(d.kind)}</div>
         ${d.draft ? `<div class="draft-flag">${esc(d.draft)}</div>` : ''}
@@ -699,7 +772,7 @@
         ${cta}
       </div>`;
     }).join('');
-    buildEmailLinks(document.getElementById('docGrid'));
+    armEmailLinks(document.getElementById('docGrid'));
   }
 
   // ---- class at a glance ----
@@ -715,10 +788,41 @@
   }
 
   // ---- map ----
-  const map = L.map('map', {scrollWheelZoom:false}).setView([30, 0], 2);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  const map = L.map('map', {scrollWheelZoom:false, worldCopyJump:true}).setView([28, 0], 2);
+
+  const mapNoteEl  = document.getElementById('mapNote');
+  const mapEmptyEl = document.getElementById('mapEmpty');
+
+  function setMapNote(text){
+    if (!text) { mapNoteEl.classList.remove('show'); return; }
+    mapNoteEl.textContent = text;
+    mapNoteEl.classList.add('show');
+  }
+
+  let tileOk = false, fallbackDrawn = false;
+
+  /* If the tiles never arrive, draw something honest rather than leaving a
+     dead rectangle: a graticule, so pins still have a readable frame. */
+  function drawFallbackChart(){
+    if (fallbackDrawn) return;
+    fallbackDrawn = true;
+    document.getElementById('map').classList.add('chart-fallback');
+    const g = L.layerGroup();
+    const style = {color:'#2b4d6b', weight:1, interactive:false};
+    for (let lon = -180; lon <= 180; lon += 30) g.addLayer(L.polyline([[-82,lon],[82,lon]], style));
+    for (let lat = -80; lat <= 80; lat += 20) g.addLayer(L.polyline([[lat,-180],[lat,180]], style));
+    g.addLayer(L.polyline([[0,-180],[0,180]], {color:'#c99a3a', weight:1, opacity:.5, dashArray:'6 6', interactive:false}));
+    g.addTo(map);
+    setMapNote('Basemap tiles could not be loaded, so this is a plain graticule chart. Pins and clustering still work. On a normal host this note disappears; inside a sandboxed preview it usually means an injected content-security-policy is blocking the tile server.');
+  }
+
+  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
-  }).addTo(map);
+  });
+  tiles.on('tileload', () => { tileOk = true; });
+  tiles.on('tileerror', () => { if (!tileOk) drawFallbackChart(); });
+  tiles.addTo(map);
+  setTimeout(() => { if (!tileOk) drawFallbackChart(); }, 5000);
 
   const clusterGroup = L.markerClusterGroup({
     iconCreateFunction: function(cluster){
@@ -728,6 +832,7 @@
       });
     }
   });
+  map.addLayer(clusterGroup);
 
   function boatIcon(status, verified){
     const color = status==='sailing' ? '#3d8a76' : status==='building' ? '#b5502a' : '#8a8065';
@@ -736,6 +841,29 @@
       html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid ${ring};box-shadow:0 0 0 2px ${color}55;"></div>`,
       className:'', iconSize:[14,14]
     });
+  }
+
+  function showEmptyState(title, text, showButton){
+    document.getElementById('mapEmptyTitle').textContent = title;
+    document.getElementById('mapEmptyText').textContent = text;
+    document.getElementById('mapEmptyBtn').style.display = showButton ? '' : 'none';
+    mapEmptyEl.classList.add('show');
+  }
+  function hideEmptyState(){ mapEmptyEl.classList.remove('show'); }
+
+  function updateEmptyState(shownCount, filter){
+    if (fleetLoadFailed) {
+      showEmptyState('Fleet data could not be loaded',
+        fleetLoadReason, false);
+    } else if (fleet.length === 0) {
+      showEmptyState('No boats on the chart yet',
+        'The register is live and empty — the first pin is still available.', true);
+    } else if (shownCount === 0) {
+      showEmptyState('Nothing under this filter',
+        `No boats are currently marked “${filter}”. Try All.`, false);
+    } else {
+      hideEmptyState();
+    }
   }
 
   let markers = [];
@@ -761,9 +889,8 @@
       markers.push(m);
     });
     clusterGroup.addLayers(markers);
+    updateEmptyState(markers.length, filter);
   }
-  renderFleet('all');
-  map.addLayer(clusterGroup);
 
   document.querySelectorAll('.filters button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -773,11 +900,20 @@
     });
   });
 
+  function currentFilter(){
+    return document.querySelector('.filters button.active')?.dataset.filter || 'all';
+  }
+
   async function loadFleetFromSupabase(){
+    fleetLoadFailed = false;
+    fleetLoadReason = '';
+    let plotted = 0, unplotted = 0;
     try {
       const { data, error } = await sb.from('public_fleet').select('*');
-      if (error) { console.error('Could not load public_fleet:', error.message); return; }
-      fleet = (data || [])
+      if (error) throw error;
+      const rows = data || [];
+      unplotted = rows.filter(r => r.lat === null || r.lng === null).length;
+      fleet = rows
         .filter(r => r.lat !== null && r.lng !== null)
         .map(r => ({
           name: r.display_name || 'A MiniMax sailor',
@@ -786,14 +922,29 @@
           status: r.status, boats: r.boats_built || 1, role: r.role,
           photo: r.photo_url || null, verified: r.verified === true
         }));
+      plotted = fleet.length;
     } catch (err) {
-      console.error('Fleet load failed (safe to ignore in preview sandboxes):', err);
+      fleet = [];
+      fleetLoadFailed = true;
+      fleetLoadReason = looksBlocked(err)
+        ? 'The request to the database never left the browser — it was blocked, or there is no network. On a sandboxed preview this is the injected content-security-policy; on a live host, check the Supabase URL and that you are online.'
+        : ('The database replied with an error: ' + String((err && err.message) || err));
+      console.error('Fleet load failed:', err);
     }
-    renderFleet(document.querySelector('.filters button.active')?.dataset.filter || 'all');
-    const caption = document.querySelector('.map-caption');
-    if (caption) caption.textContent = fleet.length === 0
-      ? 'No boats registered yet — be the first to add a pin. Only approximate locality is ever public; exact coordinates are never stored or shown.'
-      : `Showing ${fleet.length} registered MiniMax sailor${fleet.length===1?'':'s'}. A brass ring marks a licence-verified boat. Only approximate locality is ever public; exact coordinates are never stored or shown.`;
+
+    renderFleet(currentFilter());
+
+    const caption = document.getElementById('mapCaption');
+    if (fleetLoadFailed) {
+      caption.textContent = 'Fleet data unavailable — see the note on the chart. Only approximate locality is ever public; exact coordinates are never stored or shown.';
+    } else if (plotted === 0 && unplotted === 0) {
+      caption.textContent = 'No boats registered yet — be the first to add a pin. Only approximate locality is ever public; exact coordinates are never stored or shown.';
+    } else {
+      const extra = unplotted
+        ? ` ${unplotted} further registration${unplotted===1?'':'s'} could not be placed on the chart (no usable location).`
+        : '';
+      caption.textContent = `Showing ${plotted} registered MiniMax sailor${plotted===1?'':'s'}.${extra} A brass ring marks a licence-verified boat. Only approximate locality is ever public; exact coordinates are never stored or shown.`;
+    }
   }
 
   // ---- stats ----
@@ -805,7 +956,7 @@
   async function loadStatsFromSupabase(){
     try {
       const { data, error } = await sb.from('fleet_stats').select('*').maybeSingle();
-      if (error) { console.error('Could not load fleet_stats:', error.message); return; }
+      if (error) throw error;
       if (!data) return;
       animateNum(document.getElementById('stat-boats'), data.total_boats || 0);
       animateNum(document.getElementById('stat-countries'), data.total_countries || 0);
@@ -817,7 +968,7 @@
         animateNum(document.getElementById('stat-verified'), data.total_verified || 0);
       }
     } catch (err) {
-      console.error('Stats load failed (safe to ignore in preview sandboxes):', err);
+      console.error('Stats load failed:', err);
     }
   }
 
@@ -1026,9 +1177,10 @@
 
   // ---- boot ----
   async function init(){
-    buildEmailLinks();
+    armEmailLinks();
     renderDocs();
     renderFacts();
+    renderFleet('all');
 
     const { data: { session } } = await sb.auth.getSession();
     currentSession = session || null;
