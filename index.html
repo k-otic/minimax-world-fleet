@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;"><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MiniMax World Fleet Map</title>
@@ -102,6 +102,8 @@
   section.band{padding:64px 32px;max-width:1180px;margin:0 auto;}
   section.band > h2{font-family:var(--font-display);font-size:26px;text-align:center;margin:0 0 8px;}
   section.band > p.sub{text-align:center;color:var(--parchment-dim);font-size:14px;margin:0 auto 36px;max-width:640px;}
+  /* secondary heading inside a band (e.g. "Suppliers by region") */
+  section.band > h2.band-subhead{font-size:21px;margin:52px 0 8px;scroll-margin-top:88px;}
 
   .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);}
   .feat{background:var(--ink);padding:24px 22px;}
@@ -109,26 +111,28 @@
   .feat h3{font-family:var(--font-display);font-size:16px;margin:0 0 8px;}
   .feat p{font-size:13px;color:var(--parchment-dim);margin:0;}
 
-  /* ---- routes-to-a-boat panels (Shop) ---- */
-  .route-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);}
+  /* ---- routes-to-a-boat panels: full width, stacked ---- */
+  .route-grid{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);}
   .route{background:var(--ink);padding:28px 26px;}
   .route .step{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;}
   .route h3{font-family:var(--font-display);font-size:19px;margin:0 0 6px;}
   .route .price{font-family:var(--font-mono);font-size:22px;color:var(--parchment);font-weight:600;margin:2px 0 12px;}
   .route .price small{font-size:11px;color:var(--parchment-dim);font-weight:400;letter-spacing:.04em;}
-  .route p{font-size:13.5px;color:var(--parchment-dim);margin:0 0 14px;}
+  .route p{font-size:13.5px;color:var(--parchment-dim);margin:0 0 14px;max-width:760px;}
   .incl{list-style:none;padding:0;margin:0 0 18px;}
   .incl li{font-size:13px;color:var(--parchment-dim);padding:5px 0 5px 20px;position:relative;border-bottom:1px dotted rgba(205,191,158,.18);}
   .incl li:last-child{border-bottom:none;}
   .incl li::before{content:"◆";position:absolute;left:0;color:var(--brass);font-size:8px;top:8px;}
+  .route .cta-inline{max-width:340px;}
 
-  .supplier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:1px;}
+  .supplier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);}
   .supplier{background:var(--ink);padding:22px 24px;}
   .supplier .region{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin-bottom:8px;}
   .supplier .who{font-family:var(--font-display);font-size:16px;margin-bottom:4px;}
   .supplier p{font-size:12.5px;color:var(--parchment-dim);margin:0 0 10px;}
   .supplier a.contact{font-family:var(--font-mono);font-size:12px;color:var(--brass);text-decoration:none;border-bottom:1px solid var(--brass-dim);word-break:break-word;}
   .supplier a.contact:hover{color:var(--parchment);}
+  .supplier noscript .contact-plain{font-family:var(--font-mono);font-size:12px;color:var(--brass);word-break:break-word;}
   .notice{
     border-left:2px solid var(--brass);background:var(--ink-2);padding:14px 18px;margin-top:22px;
     font-size:13px;color:var(--parchment-dim);
@@ -196,13 +200,13 @@
   .check-line{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#333;margin-top:4px;}
   .modal .submit{width:100%;margin-top:8px;border:none;}
 
-  @media (max-width:820px){ .route-grid{grid-template-columns:1fr;} }
   @media (max-width:640px){
     header.topbar{padding:14px 18px;}
     nav.toplinks{display:none;}
     .row2{grid-template-columns:1fr;}
     #map{height:420px;}
     section.band{padding:48px 20px;}
+    .route .cta-inline{max-width:none;}
   }
 </style>
 </head>
@@ -287,7 +291,7 @@
         <li>Future file updates</li>
         <li>Entry into the official MiniMax Registry</li>
       </ul>
-      <a class="btn-brass" href="https://castlerock.bigcartel.com" target="_blank" rel="noopener" style="width:100%;">Get the STL package</a>
+      <a class="btn-brass cta-inline" href="https://castlerock.bigcartel.com" target="_blank" rel="noopener" style="width:100%;">Get the STL package</a>
     </div>
 
     <div class="route">
@@ -301,22 +305,26 @@
         <li>A-rig and B-rig sail templates (PDF)</li>
         <li>Colour choices vary by supplier</li>
       </ul>
-      <a class="btn-outline" href="#suppliers" style="width:100%;">See suppliers by region</a>
     </div>
   </div>
 
-  <div id="suppliers" class="supplier-grid">
+  <h2 class="band-subhead" id="suppliers">Suppliers by region</h2>
+  <p class="sub" style="margin-bottom:20px;">Contact the supplier for your region directly — this page is not a checkout.</p>
+
+  <div class="supplier-grid">
     <div class="supplier">
       <div class="region">New Zealand · Australia · International</div>
       <div class="who">Castlerock Yachtworks</div>
       <p>Brett McCormack, Dunedin. A limited number of kits; lead time approximately two weeks. Message or email for details.</p>
-      <a class="contact" href="mailto:castlerockyachts@gmail.com">castlerockyachts@gmail.com</a>
+      <a class="contact" data-mail="castlerock" data-label="Email Castlerock Yachtworks">Email Castlerock Yachtworks</a>
+      <noscript><span class="contact-plain">castlerockyachts (at) gmail (dot) com</span></noscript>
     </div>
     <div class="supplier">
       <div class="region">United Kingdom</div>
       <div class="who">Neil Witt</div>
       <p>UK kit supply. Also the designer of the launching-aid handle used by builders elsewhere.</p>
-      <a class="contact" href="mailto:neil@pegasus18.com">neil@pegasus18.com</a>
+      <a class="contact" data-mail="neil" data-label="Email Neil Witt">Email Neil Witt</a>
+      <noscript><span class="contact-plain">neil (at) pegasus18 (dot) com</span></noscript>
     </div>
     <div class="supplier">
       <div class="region">United States · North America</div>
@@ -328,7 +336,8 @@
       <div class="region">Europe</div>
       <div class="who">Being established</div>
       <p>European kit supply is now being set up. Interested builders should contact Brett directly and he will put you in touch with the appropriate supplier.</p>
-      <a class="contact" href="mailto:castlerockyachts@gmail.com?subject=MiniMax%20kit%20-%20Europe">castlerockyachts@gmail.com</a>
+      <a class="contact" data-mail="castlerock" data-subject="MiniMax kit - Europe" data-label="Email Brett about Europe">Email Brett about Europe</a>
+      <noscript><span class="contact-plain">castlerockyachts (at) gmail (dot) com</span></noscript>
     </div>
   </div>
 
@@ -376,7 +385,7 @@
     </details>
     <details class="faq-item">
       <summary>Is my exact address ever shown on the map?</summary>
-      <p>No. Only the country, region and locality you choose to share are used to place your pin — never a precise address, and never without your consent.</p>
+      <p>No. Only the country, region and locality you choose to share are used to place your pin — never a precise address, and never without your consent. The public map data is served through a database view that rounds every coordinate before it leaves the server.</p>
     </details>
     <details class="faq-item">
       <summary>Can I appear in the numbers without a public pin?</summary>
@@ -547,6 +556,18 @@
   /* ==================================================================
      MiniMax World Fleet Map
 
+     v0.9-alpha changelog
+     · "How to get a MiniMax": Route one and Route two are now full-width
+       stacked panels. The "See suppliers by region" button is gone —
+       suppliers are a proper heading immediately below.
+     · Supplier and library email addresses are no longer in the HTML
+       source. They are assembled at runtime from parts (see MAIL below),
+       with a readable <noscript> fallback for anyone without JavaScript.
+     · Requires the SQL migration shipped with this version: public_fleet
+       and fleet_stats are now views over SECURITY DEFINER functions, so
+       the anon role needs no privileges on public.boats at all, and every
+       published coordinate is rounded to 2 decimals (~1 km) server-side.
+
      v0.8-alpha changelog
      · Shop replaced by "How to get a MiniMax": STL route (€25) vs printed
        kits, with the four regional suppliers (NZ/AU/Intl, UK, US, Europe).
@@ -559,14 +580,19 @@
      · Map popups and stats show a "licence verified" mark when boats.verified
        is true. Verification is set only by an admin, never by the user.
      · Useful Links now point at real destinations.
-
-     REQUIRES the SQL migration shipped with this version (order_id,
-     verified, protect_verification trigger, updated public_fleet and
-     fleet_stats views).
      ================================================================== */
 
   /* ---- EDIT-ME BLOCK: the only numbers and files you'll change often ---- */
-  const SITE_VERSION = 'v0.8-alpha · 20 Aug 2026';
+  const SITE_VERSION = 'v0.9-alpha · 19 Sep 2026';
+
+  /* Email addresses, split so they are not scrapable from the HTML.
+     Add a new supplier by adding a key here and a matching
+     data-mail="key" on the <a class="contact"> in the markup. */
+  const MAIL = {
+    castlerock: ['castlerockyachts', 'gmail.com'],
+    neil:       ['neil', 'pegasus18.com']
+    // cooper:  ['user', 'domain.com']   <-- add Mark Cooper's address here
+  };
 
   const CLASS_FACTS = {
     as_of: 'August 2026',
@@ -589,7 +615,9 @@
       title: 'MiniMax: a 220 mm 3D Printed One Design',
       desc: 'The full build document — print orientations, electronics list, spar and ballast dimensions, rig assembly, sailmaking and tuning. Supplied with your STL licence.',
       access: 'licence',
-      mailto: 'mailto:castlerockyachts@gmail.com?subject=MiniMax%20STL%20licence%20enquiry'
+      mail: 'castlerock',
+      subject: 'MiniMax STL licence enquiry',
+      cta: 'Request with licence'
     },
     {
       kind: 'Class rules · PDF',
@@ -639,12 +667,30 @@
     flashTimer = setTimeout(() => flashEl.classList.remove('show'), isError ? 9000 : 5000);
   }
 
+  // ---- email addresses assembled at runtime ----
+  function mailAddress(key){
+    const parts = MAIL[key];
+    if (!parts) return null;
+    return parts[0] + String.fromCharCode(64) + parts[1];
+  }
+  function buildEmailLinks(root){
+    (root || document).querySelectorAll('a[data-mail]').forEach(el => {
+      const addr = mailAddress(el.dataset.mail);
+      if (!addr) return;
+      const subject = el.dataset.subject
+        ? '?subject=' + encodeURIComponent(el.dataset.subject) : '';
+      el.setAttribute('href', 'mailto:' + addr + subject);
+      el.setAttribute('title', addr);
+      if (!el.dataset.keepLabel) el.textContent = el.dataset.label || addr;
+    });
+  }
+
   // ---- class library ----
   function renderDocs(){
     document.getElementById('docGrid').innerHTML = DOCS.map(d => {
       const cta = d.access === 'public'
         ? `<a class="btn-outline" href="${esc(d.file)}" target="_blank" rel="noopener" style="width:100%;">Open PDF</a>`
-        : `<a class="btn-outline" href="${esc(d.mailto)}" style="width:100%;">Request with licence</a>`;
+        : `<a class="btn-outline" data-mail="${esc(d.mail)}" data-subject="${esc(d.subject || '')}" data-label="${esc(d.cta || 'Email us')}" data-keep-label="1" style="width:100%;">${esc(d.cta || 'Email us')}</a>`;
       return `<div class="doc">
         <div class="kind">${esc(d.kind)}</div>
         ${d.draft ? `<div class="draft-flag">${esc(d.draft)}</div>` : ''}
@@ -653,6 +699,7 @@
         ${cta}
       </div>`;
     }).join('');
+    buildEmailLinks(document.getElementById('docGrid'));
   }
 
   // ---- class at a glance ----
@@ -979,6 +1026,7 @@
 
   // ---- boot ----
   async function init(){
+    buildEmailLinks();
     renderDocs();
     renderFacts();
 
@@ -1009,6 +1057,7 @@
 
   init();
 </script>
+
 
 
 </body></html>
