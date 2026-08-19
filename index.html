@@ -251,7 +251,7 @@
     <button data-filter="planning">Planning</button>
   </div>
   <div id="map"></div>
-  <p class="map-caption">Demo data shown below — real markers will be generated automatically when sailors register through the form. Only approximate locality is ever public; exact coordinates are never stored or shown.</p>
+  <p class="map-caption">Loading fleet data… Only approximate locality is ever public; exact coordinates are never stored or shown.</p>
 </section>
 
 <section class="features" id="features">
@@ -457,53 +457,33 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdGF2eWJxaHJ2amJlb2Zxcm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI0NTMsImV4cCI6MjEwMjcwODQ1M30.2plNkkCD__49SKfcuoVSinvKlApGiX750r4bPbBlkR0';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ---- fallback demo fleet data, shown until real registrations exist ----
-  const demoFleet = [
-    {name:"J. Alves", lat:37.74, lng:-25.67, country:"Portugal", locality:"Ponta Delgada, Azores", status:"sailing", boats:2, role:"Both", photo:"https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=300&q=60"},
-    {name:"R. Silva", lat:38.72, lng:-9.14, country:"Portugal", locality:"Lisbon", status:"building", boats:1, role:"Builder", photo:"https://images.unsplash.com/photo-1500534623283-312aade485b7?w=300&q=60"},
-    {name:"T. Marsh", lat:51.5, lng:-0.12, country:"United Kingdom", locality:"London", status:"sailing", boats:1, role:"Owner", photo:"https://images.unsplash.com/photo-1523575708161-ad0fc2a9c589?w=300&q=60"},
-    {name:"K. Berger", lat:53.55, lng:9.99, country:"Germany", locality:"Hamburg", status:"planning", boats:0, role:"Builder", photo:null},
-    {name:"S. Dupont", lat:48.85, lng:2.35, country:"France", locality:"Paris", status:"building", boats:1, role:"Both", photo:"https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&q=60"},
-    {name:"L. Costa", lat:-23.55, lng:-46.63, country:"Brazil", locality:"São Paulo", status:"sailing", boats:3, role:"Builder", photo:"https://images.unsplash.com/photo-1519046904884-53103b34b206?w=300&q=60"},
-    {name:"A. Nakamura", lat:35.68, lng:139.69, country:"Japan", locality:"Tokyo", status:"sailing", boats:1, role:"Owner", photo:null},
-    {name:"D. Miller", lat:42.36, lng:-71.06, country:"USA", locality:"Boston, MA", status:"building", boats:1, role:"Builder", photo:"https://images.unsplash.com/photo-1544966503-7cc531909e2e?w=300&q=60"},
-    {name:"C. Novak", lat:45.81, lng:15.98, country:"Croatia", locality:"Zagreb", status:"planning", boats:0, role:"Owner", photo:null},
-    {name:"M. van Dijk", lat:52.37, lng:4.90, country:"Netherlands", locality:"Amsterdam", status:"sailing", boats:2, role:"Both", photo:"https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=300&q=60"},
-    {name:"H. Andersen", lat:55.68, lng:12.57, country:"Denmark", locality:"Copenhagen", status:"building", boats:1, role:"Builder", photo:null},
-    {name:"P. Rossi", lat:44.41, lng:8.93, country:"Italy", locality:"Genoa", status:"sailing", boats:1, role:"Owner", photo:"https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=300&q=60"},
-  ];
+  // ---- live fleet: real registrations only, loaded from Supabase. Empty until people register. ----
+  let fleet = [];
 
-  // ---- live fleet: starts with demo pins, replaced by real data from Supabase once loaded ----
-  let fleet = demoFleet;
-  let usingDemoData = true;
-
-  const SITE_VERSION = 'v0.4-alpha · 19 Aug 2026';
+  const SITE_VERSION = 'v0.5-alpha · 19 Aug 2026';
   document.getElementById('versionTag').textContent = SITE_VERSION;
 
   async function loadFleetFromSupabase(){
     try {
       const { data, error } = await sb.from('public_fleet').select('*');
       if (error) { console.error('Could not load public_fleet:', error.message); return; }
-      if (data && data.length > 0) {
-        fleet = data
-          .filter(r => r.lat !== null && r.lng !== null)
-          .map(r => ({
-            name: r.display_name || 'A MiniMax sailor',
-            lat: r.lat, lng: r.lng,
-            country: r.country, locality: [r.locality, r.region].filter(Boolean).join(', '),
-            status: r.status, boats: r.boats_built || 1, role: r.role, photo: r.photo_url || null
-          }));
-        usingDemoData = false;
-      }
+      fleet = (data || [])
+        .filter(r => r.lat !== null && r.lng !== null)
+        .map(r => ({
+          name: r.display_name || 'A MiniMax sailor',
+          lat: r.lat, lng: r.lng,
+          country: r.country, locality: [r.locality, r.region].filter(Boolean).join(', '),
+          status: r.status, boats: r.boats_built || 1, role: r.role, photo: r.photo_url || null
+        }));
     } catch (err) {
       console.error('Fleet load failed (safe to ignore in preview sandboxes):', err);
     }
     renderFleet(document.querySelector('.filters button.active')?.dataset.filter || 'all');
     updateStats();
     const caption = document.querySelector('.map-caption');
-    if (caption) caption.textContent = usingDemoData
-      ? 'Demo data shown below — register your boat to add a real pin. Only approximate locality is ever public; exact coordinates are never stored or shown.'
-      : `Showing ${fleet.length} registered MiniMax sailors. Only approximate locality is ever public; exact coordinates are never stored or shown.`;
+    if (caption) caption.textContent = fleet.length === 0
+      ? 'No boats registered yet — be the first to add a pin. Only approximate locality is ever public; exact coordinates are never stored or shown.'
+      : `Showing ${fleet.length} registered MiniMax sailor${fleet.length===1?'':'s'}. Only approximate locality is ever public; exact coordinates are never stored or shown.`;
   }
 
   const map = L.map('map', {scrollWheelZoom:false}).setView([30, 0], 2);
