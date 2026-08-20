@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;"><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;"><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com https://fftavybqhrvjbeofqrnc.supabase.co https://nominatim.openstreetmap.org https://*.basemaps.cartocdn.com; connect-src 'self' https://fftavybqhrvjbeofqrnc.supabase.co wss://fftavybqhrvjbeofqrnc.supabase.co https://nominatim.openstreetmap.org; img-src 'self' data: blob: https:; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MiniMax World Fleet Map</title>
@@ -632,41 +632,46 @@
   /* ==================================================================
      MiniMax World Fleet Map
 
-     v0.9.4-alpha changelog
-     · FIXED: the two Facebook destinations, which were the wrong way round.
-       The builders group is /groups/4640208236250985 and is labelled
-       "MiniMax RC Yacht Builders"; the Castlerock Yachtworks page is
-       /profile.php?id=61558568288867. The card that previously pointed at
-       /search/groups/?q=MiniMax... was linking to a Facebook search results
-       page, which is not a stable destination and requires a login to show
-       anything at all.
-     · Same fix applied to the <noscript> fallback under Neil Witt, which
-       carried the same search URL.
+     v0.9.5-alpha changelog
+     · FIXED, and this was the cause of "No sign-in link could be sent":
+       the Content-Security-Policy meta tag in <head> did not list the
+       Supabase project, Nominatim or the CARTO tile servers. Every request
+       to all three was refused before it left the browser. Three symptoms,
+       one cause — the failed sign-in, the graticule fallback instead of a
+       basemap, and (silently) geocoding returning no coordinates.
+       The policy now carries an explicit connect-src for Supabase over
+       both https and wss plus Nominatim, and an img-src that permits any
+       https image, which the boat-photo field requires.
+     · CORRECTION to the v0.9.3 note, which claimed nothing in this file
+       could widen the policy. That is only true of a policy delivered as an
+       HTTP header. This one is a meta tag in this document, so the document
+       controls it. If a host ALSO sends a CSP header, the two combine
+       restrictively and the header wins — in that case the console will keep
+       naming a directive that does not match the meta tag above, and the
+       page has to move to a host that does not send one.
+     · ADDED: explainAuthError(). Supabase's built-in email sender allows
+       roughly two messages per hour and enforces a 60-second gap between
+       requests. Both come back as opaque errors; both are now named.
+     · FIXED: the pending registration was written to localStorage before
+       the sign-in email was known to have been sent, so a failed send left
+       a stale entry that would fire on some later visit. It is now written
+       only after the send succeeds.
 
-     v0.9.3-alpha changelog
-     · REMOVED: preview mode in its entirety — no local pins, no offline
-       gazetteer, no browser-stored entries, no banner. Registration either
-       reaches the database or reports plainly that it did not.
-     · FIXED: overlap. .map-wrap has isolation:isolate, so Leaflet's panes
-       and the two map overlays live in their own stacking context and can
-       never rise above the modals (1200) or the flash message (1300).
-     · FIXED: solid filled rectangles in Useful Links and Beyond the map.
-       Grid dividers are borders on the cells now, not a coloured container
-       showing through the 1px gaps of empty auto-fit cells.
-     · Column counts are fixed rather than auto-fit: 3 for the card bands,
-       2 for suppliers, 4 for the facts strip. Both feature bands read as
-       the same object at every width.
-     · One-time cleanup of the localStorage key used by v0.9.2 previews.
+     v0.9.4-alpha
+     · FIXED the two Facebook destinations, which were the wrong way round,
+       and the /search/groups/ URL, which was a search results page.
 
-     If this page is served inside a sandbox that injects a
-     Content-Security-Policy without connect-src, every fetch falls back to
-     default-src, and Supabase, Nominatim and the tile servers are refused.
-     Nothing in this file can widen that policy. Serve it from an ordinary
-     host and the map, the counters and registration all work.
+     v0.9.3-alpha
+     · REMOVED preview mode entirely. Registration either reaches the
+       database or reports plainly that it did not.
+     · FIXED overlap: .map-wrap has isolation:isolate, so Leaflet's panes
+       cannot rise above the modals (1200) or the flash message (1300).
+     · FIXED the solid filled rectangles in the card bands: grid dividers
+       are borders on the cells, not a container showing through gaps.
      ================================================================== */
 
   /* ---- EDIT-ME BLOCK: the only numbers and files you'll change often ---- */
-  const SITE_VERSION = 'v0.9.4-alpha · 19 Aug 2026';
+  const SITE_VERSION = 'v0.9.5-alpha · 19 Aug 2026';
 
   /* Email addresses, split so they never appear whole in the HTML source.
      Add a supplier by adding a key here plus data-mail="key" on the <a>. */
@@ -712,6 +717,11 @@
   ];
   /* ---------------------- END EDIT-ME BLOCK ---------------------------- */
 
+  /* TRAP, and it will cost you an hour if you hit it: this URL also has to
+     appear in the Content-Security-Policy meta tag at the top of the file,
+     in BOTH default-src and connect-src (https and wss). Change the project
+     reference in one place only and every request is refused with no useful
+     error beyond "Failed to fetch". */
   const SUPABASE_URL = 'https://fftavybqhrvjbeofqrnc.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdGF2eWJxaHJ2amJlb2Zxcm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI0NTMsImV4cCI6MjEwMjcwODQ1M30.2plNkkCD__49SKfcuoVSinvKlApGiX750r4bPbBlkR0';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -763,10 +773,31 @@
            m.includes('fetch failed');
   }
   const BLOCKED_EXPLANATION =
-    'The request never left the browser — it was blocked, or there is no ' +
-    'network. If this page is running inside a sandboxed preview, that ' +
-    'preview\'s content-security-policy is the cause; on a live host, check ' +
-    'the Supabase URL and that you are online.';
+    'The request never left the browser. Open the console: a content-security-policy ' +
+    'violation names the directive that refused it. If that directive does not match ' +
+    'the meta tag in this file, the policy is coming from an HTTP header and the page ' +
+    'needs a different host. Otherwise, check you are online.';
+
+  /* Supabase returns these as ordinary auth errors with terse text. Both are
+     easy to mistake for a broken integration, and neither is. */
+  function explainAuthError(error){
+    const raw = String((error && error.message) || error || '');
+    const m = raw.toLowerCase();
+    if (looksBlocked(m)) return 'No sign-in link could be sent. ' + BLOCKED_EXPLANATION;
+    if (m.includes('rate limit') || (error && error.status === 429))
+      return 'Supabase refused on its email rate limit. The built-in sender allows only ' +
+             'about two messages an hour and may only deliver to addresses on the ' +
+             'project team. Wait an hour, or configure custom SMTP in the dashboard ' +
+             'under Authentication → Emails.';
+    if (m.includes('for security purposes') || m.includes('only request this after'))
+      return 'Too soon after the last attempt — Supabase enforces a 60-second gap ' +
+             'between sign-in emails. Try again in a minute. (' + raw + ')';
+    if (m.includes('redirect') || m.includes('not allowed'))
+      return 'Supabase rejected the redirect target. Add this page\'s URL to ' +
+             'Authentication → URL Configuration → Redirect URLs. Current value: ' +
+             window.location.href;
+    return 'Something went wrong: ' + raw;
+  }
 
   // ---- email addresses assembled only on human interaction ----
   function mailAddress(key){
@@ -850,7 +881,9 @@
   let tileOk = false, fallbackDrawn = false;
 
   /* If tiles never arrive, draw a graticule rather than leave a dead
-     rectangle, so pins still have a readable frame of reference. */
+     rectangle, so pins still have a readable frame of reference.
+     Seeing this is also a useful signal: if the basemap is blocked, the
+     Supabase calls are almost certainly blocked by the same policy. */
   function drawFallbackChart(){
     if (fallbackDrawn) return;
     fallbackDrawn = true;
@@ -861,7 +894,7 @@
     for (let lat = -80; lat <= 80; lat += 20) g.addLayer(L.polyline([[lat,-180],[lat,180]], style));
     g.addLayer(L.polyline([[0,-180],[0,180]], {color:'#c99a3a', weight:1, opacity:.5, dashArray:'6 6', interactive:false}));
     g.addTo(map);
-    setMapNote('Basemap tiles could not be loaded, so this is a plain graticule chart. Pins and clustering still work.');
+    setMapNote('Basemap tiles could not be loaded, so this is a plain graticule chart. Pins and clustering still work. If registration also fails, both are being refused by the same content-security-policy.');
   }
 
   const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -922,7 +955,7 @@
       .forEach(f=>{
         const m = L.marker([f.lat,f.lng], {icon: boatIcon(f.status, f.verified)});
         const photo = safePhoto(f.photo);
-        const photoHtml = photo ? `<img src="${esc(photo)}" alt="Boat photo">` : '';
+        const photoHtml = photo ? `<img src="${esc(photo)}" alt="Boat photo" referrerpolicy="no-referrer" loading="lazy">` : '';
         const place = [f.locality, f.country].filter(Boolean).join(', ');
         const statusClass = ['sailing','building','planning'].includes(f.status) ? f.status : 'planning';
         const verifiedBadge = f.verified ? '<span class="badge verified">Licence verified</span>' : '';
@@ -1190,7 +1223,6 @@
     }
 
     const email = regForm.email.value.trim();
-    localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...entry }));
 
     regSubmit.disabled = true;
     regStatus.textContent = 'Sending your sign-in link…';
@@ -1198,12 +1230,15 @@
     regSubmit.disabled = false;
 
     if (error) {
-      regStatus.textContent = looksBlocked(error.message)
-        ? 'No sign-in link could be sent. ' + BLOCKED_EXPLANATION
-        : 'Something went wrong: ' + error.message;
+      regStatus.textContent = explainAuthError(error);
       flash('Registration could not be started — your details are still in the form.', true);
       return false;
     }
+
+    /* Only now is it worth stashing: the email is genuinely on its way, so
+       there will be a return visit to complete. Writing this before the send
+       left a stale entry behind on every failure. */
+    localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...entry }));
     regStatus.textContent = `Check ${email} for a sign-in link — clicking it finishes your registration.`;
     return false;
   }
@@ -1217,9 +1252,7 @@
     statusEl.textContent = 'Sending your sign-in link…';
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
     if (error) {
-      statusEl.textContent = looksBlocked(error.message)
-        ? 'No sign-in link could be sent. ' + BLOCKED_EXPLANATION
-        : 'Something went wrong: ' + error.message;
+      statusEl.textContent = explainAuthError(error);
       return false;
     }
     statusEl.textContent = `Check ${email} for a sign-in link.`;
