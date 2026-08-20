@@ -38,6 +38,7 @@
     --parchment:#efe6d2; --parchment-dim:#e2d6b8;
     --brass:#c99a3a; --brass-dim:#9d7a2c;
     --teal:#3d8a76; --rust:#b5502a;
+    --verified:#3ecf6e; --pending:#e8912f;
     --line:#2b4d6b; --line-light:#cdbf9e;
     --font-display:'Fraunces', serif;
     --font-body:'Inter', sans-serif;
@@ -183,7 +184,8 @@
   .badge.sailing{background:var(--teal);color:#fff;}
   .badge.building{background:var(--rust);color:#fff;}
   .badge.planning{background:#8a8065;color:#fff;}
-  .badge.verified{background:var(--ink);color:var(--brass);border:1px solid var(--brass);}
+  .badge.verified{background:var(--verified);color:var(--ink);}
+  .badge.pending{background:var(--pending);color:var(--ink);}
   .badge.demo{background:var(--rust);color:#fff;}
   .popup-card .meta{font-size:12px;margin-top:6px;color:#333;}
 
@@ -503,7 +505,7 @@
     </details>
     <details class="faq-item">
       <summary>Do I need a licence, and what is the Order ID field for?</summary>
-      <p>Yes — an STL licence from Castlerock Yachtworks is required, whether you print your own parts or buy a kit. When you register, you can optionally add the order or licence reference from your purchase. That lets Brett confirm a boat came from a genuine licence rather than a shared file, and verified boats carry a small brass mark on the map. It is optional and never shown publicly.</p>
+      <p>Yes — an STL licence from Castlerock Yachtworks is required, whether you print your own parts or buy a kit. When you register, you can optionally add the order or licence reference from your purchase. That lets Brett confirm a boat came from a genuine licence rather than a shared file, and verified boats get a green ring on the map instead of the usual orange one. It is optional and never shown publicly.</p>
     </details>
     <details class="faq-item">
       <summary>Are there class rules yet?</summary>
@@ -1172,9 +1174,9 @@
 
   function boatIcon(status, verified){
     const color = status==='sailing' ? '#3d8a76' : status==='building' ? '#b5502a' : '#8a8065';
-    const ring = verified ? '#c99a3a' : '#efe6d2';
+    const ring = verified ? 'var(--verified)' : 'var(--pending)';
     return L.divIcon({
-      html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid ${ring};box-shadow:0 0 0 2px ${color}55;"></div>`,
+      html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid ${ring};box-shadow:0 0 0 1px ${color}55;"></div>`,
       className:'', iconSize:[14,14]
     });
   }
@@ -1213,7 +1215,13 @@
         const photoHtml = photo ? `<img src="${esc(photo)}" alt="Boat photo" referrerpolicy="no-referrer" loading="lazy">` : '';
         const place = [f.locality, f.country].filter(Boolean).join(', ');
         const statusClass = ['sailing','building','planning'].includes(f.status) ? f.status : 'planning';
-        const verifiedBadge = f.verified ? '<span class="badge verified">Licence verified</span>' : '';
+        // "Not verified" rather than "pending" — most unverified boats never
+        // submitted an order reference at all (it's optional), so implying an
+        // active queue for all of them would be misleading. "Pending" stays
+        // reserved for review.html's admin queue, which really is one.
+        const verifiedBadge = f.verified
+          ? '<span class="badge verified">Licence verified</span>'
+          : '<span class="badge pending">Not verified</span>';
         // Demo pins say so inside the popup too, not only in the banner.
         const demoBadge = demoActive ? '<span class="badge demo">Sample data</span>' : '';
         const demoLine = demoActive
@@ -1270,7 +1278,7 @@
     const extra = lastCounts.unplotted
       ? ` ${lastCounts.unplotted} further registration${lastCounts.unplotted===1?'':'s'} could not be placed on the chart (no usable location).`
       : '';
-    caption.textContent = `Showing ${lastCounts.plotted} registered MiniMax sailor${lastCounts.plotted===1?'':'s'}.${extra} A brass ring marks a licence-verified boat. ${privacy}`;
+    caption.textContent = `Showing ${lastCounts.plotted} registered MiniMax sailor${lastCounts.plotted===1?'':'s'}.${extra} Ring colour: green means licence-verified, orange means not verified yet. ${privacy}`;
   }
 
   // ---- demo mode ----
