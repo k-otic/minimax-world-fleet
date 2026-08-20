@@ -323,7 +323,8 @@
     <a href="#faq-anchor">FAQs</a>
     <a href="#links-anchor">Links</a>
   </nav>
-  <div style="display:flex;gap:10px;">
+  <div style="display:flex;gap:10px;align-items:center;">
+    <a href="review.html" class="btn-outline" id="navReview" hidden="">Review</a>
     <button class="btn-outline" id="btnLogin" onclick="handleAuthButton()">Log In</button>
     <button class="btn-brass" id="btnRegister" onclick="openModal()">Register</button>
   </div>
@@ -822,6 +823,7 @@
   let demoActive = false;
   let currentSession = null;
   let myEntry = null;
+  let isAdmin = false;
   let regStep = 'form';    // 'form' | 'code' — where the (signed-out) registration form is
   let loginStep = 'send';  // 'send' | 'code' — where the login form is
 
@@ -1416,6 +1418,7 @@
     const signedIn = !!currentSession;
     btnLogin.textContent = signedIn ? 'Log Out' : 'Log In';
     btnRegister.textContent = signedIn ? 'My Entry' : 'Register';
+    document.getElementById('navReview').hidden = !(signedIn && isAdmin);
     document.getElementById('regCodeField').hidden = true;
     if (signedIn) regStep = 'form';
 
@@ -1440,6 +1443,7 @@
     try { await sb.auth.signOut(); } catch (err) { console.error('Sign-out failed:', err); }
     currentSession = null;
     myEntry = null;
+    isAdmin = false;
     regForm.reset();
     applyAuthUI();
     flash('Signed out.');
@@ -1453,6 +1457,16 @@
       if (error) { console.error('Could not load own entry:', error.message); return null; }
       return data || null;
     } catch (err) { console.error('Own-entry load failed:', err); return null; }
+  }
+
+  // Purely a discoverability convenience — review.html enforces this RPC itself,
+  // so a false negative/positive here can never grant or hide real access.
+  async function checkAdmin(){
+    if (!currentSession) { isAdmin = false; return; }
+    try {
+      const { data, error } = await sb.rpc('is_class_admin');
+      isAdmin = !error && data === true;
+    } catch (err) { console.error('Admin check failed:', err); isAdmin = false; }
   }
 
   // ---- single write path: creates on first save, updates thereafter ----
@@ -1633,6 +1647,7 @@
       await completePendingRegistrationIfAny();
       myEntry = await loadMyEntry();
       if (myEntry) prefillForm(myEntry);
+      await checkAdmin();
     }
     applyAuthUI();
     loadStatsFromSupabase();
@@ -1648,6 +1663,7 @@
       await completePendingRegistrationIfAny();
       myEntry = await loadMyEntry();
       if (myEntry) prefillForm(myEntry);
+      await checkAdmin();
       loadStatsFromSupabase();
       loadFleetFromSupabase();
     }
