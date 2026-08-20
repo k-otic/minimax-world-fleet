@@ -1,9 +1,31 @@
-<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
-<meta name="x-poe-datastore-behavior" content="local_only">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com https://fftavybqhrvjbeofqrnc.supabase.co https://nominatim.openstreetmap.org https://*.basemaps.cartocdn.com; connect-src 'self' https://fftavybqhrvjbeofqrnc.supabase.co wss://fftavybqhrvjbeofqrnc.supabase.co https://nominatim.openstreetmap.org; img-src 'self' data: blob: https:; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MiniMax World Fleet Map</title>
+
+<!-- ==================================================================
+     NO Content-Security-Policy META TAG HERE — ON PURPOSE.
+
+     A document cannot widen a policy it is already under. Policies INTERSECT
+     (CSP spec §8.1): a request must be allowed by every active policy, so a tag
+     added here can only ever narrow what is permitted. Worse, a policy cannot be
+     withdrawn once parsed — the spec states that modifications to a meta
+     element's content attribute after parsing are ignored, and removing the
+     element does not lift the policy either.
+
+     CONSEQUENCE, and this is the whole problem: if any tool inserts its own CSP
+     meta tag into this file before you download it, that line travels with the
+     file to your host and keeps blocking supabase.co, nominatim.openstreetmap.org
+     and basemaps.cartocdn.com there. The host is not at fault and no JavaScript
+     can undo it. The line has to be absent from the file on disk.
+
+     The self-check at the bottom of this script detects exactly that case,
+     distinguishes it from a policy sent as an HTTP header, and can regenerate a
+     cleaned copy of this file for download.
+     ================================================================== -->
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
@@ -32,14 +54,9 @@
     background-size:48px 48px;background-position:-1px -1px;
   }
 
-  /* ==================================================================
-     RULED GRIDS
-     Dividers are drawn with borders on the cells, not with a coloured
-     container behind 1px gaps. The old method painted the container's
-     background into every cell an auto-fit row left empty, which is what
-     produced the solid blue rectangles. With borders, an incomplete row is
-     simply absent — nothing to paint.
-     ================================================================== */
+  /* Dividers drawn with borders on the cells, not with a coloured container
+     behind 1px gaps — an incomplete auto-fit row is then simply absent
+     instead of painting a solid rectangle. */
   .links-grid,.feat-grid,.doc-grid,.supplier-grid,.facts,.route-grid{
     display:grid;
     border:1px solid var(--line);
@@ -52,8 +69,6 @@
     border-right:1px solid var(--line);
     border-bottom:1px solid var(--line);
   }
-  /* Fixed column counts, so both feature bands read as the same object.
-     Useful Links: 6 cards -> 3x2. Beyond the map: 9 cards -> 3x3. */
   .links-grid,.feat-grid,.doc-grid{grid-template-columns:repeat(3,1fr);}
   .supplier-grid{grid-template-columns:repeat(2,1fr);}
   .facts{grid-template-columns:repeat(4,1fr);}
@@ -78,6 +93,19 @@
   }
   .btn-brass:hover{background:#dcae4c;}
   .btn-brass[disabled]{opacity:.6;cursor:progress;}
+
+  /* ---- self-check banner ---- */
+  .diag{
+    display:none;border-bottom:1px solid var(--rust);background:#1a1a1a;
+    padding:16px 32px;font-family:var(--font-mono);font-size:12px;line-height:1.65;color:var(--parchment-dim);
+  }
+  .diag.show{display:block;}
+  .diag .diag-t{color:var(--rust);text-transform:uppercase;letter-spacing:.12em;font-size:11px;margin-bottom:8px;}
+  .diag code{background:#000;padding:1px 5px;color:var(--brass);word-break:break-all;}
+  .diag ol{margin:8px 0 0;padding-left:20px;}
+  .diag li{margin-bottom:4px;}
+  .diag .diag-act{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .diag .diag-detail{opacity:.6;margin-top:10px;font-size:10.5px;}
 
   .hero{padding:64px 32px 40px;text-align:center;position:relative;}
   .cartouche{max-width:720px;margin:0 auto;border:1px solid var(--brass-dim);padding:40px 36px;position:relative;}
@@ -113,9 +141,8 @@
   }
   .filters button.active{border-color:var(--brass);color:var(--brass);}
 
-  /* isolation:isolate gives the map its own stacking context. Leaflet's panes
-     and the two overlays below can therefore never compete with the modals in
-     the root context, whatever z-index Leaflet uses internally. */
+  /* isolation:isolate gives the map its own stacking context, so Leaflet's
+     panes can never compete with the modals in the root context. */
   .map-wrap{position:relative;max-width:1180px;margin:0 auto;isolation:isolate;z-index:0;}
   #map{height:520px;border:1px solid var(--line);background:#0e2a40;filter:sepia(8%) saturate(85%);}
   #map.chart-fallback{filter:none;}
@@ -134,6 +161,13 @@
   }
   .map-note.show{display:block;}
   .map-caption{max-width:1180px;margin:12px auto 0;font-family:var(--font-mono);font-size:11px;color:var(--parchment-dim);opacity:.75;}
+  .demo-flag{
+    max-width:1180px;margin:0 auto 14px;display:none;
+    border-left:2px solid var(--rust);background:var(--ink-2);padding:10px 14px;
+    font-family:var(--font-mono);font-size:11px;color:var(--parchment-dim);
+  }
+  .demo-flag.show{display:block;}
+  .demo-flag strong{color:var(--parchment);}
 
   .leaflet-popup-content-wrapper{background:var(--parchment);color:var(--ink);border-radius:2px;}
   .leaflet-popup-tip{background:var(--parchment);}
@@ -146,6 +180,7 @@
   .badge.building{background:var(--rust);color:#fff;}
   .badge.planning{background:#8a8065;color:#fff;}
   .badge.verified{background:var(--ink);color:var(--brass);border:1px solid var(--brass);}
+  .badge.demo{background:var(--rust);color:#fff;}
   .popup-card .meta{font-size:12px;margin-top:6px;color:#333;}
 
   section.band{padding:64px 32px;max-width:1180px;margin:0 auto;}
@@ -263,6 +298,7 @@
     #map{height:420px;}
     section.band{padding:48px 20px;}
     .route .cta-inline{max-width:none;}
+    .diag{padding:14px 18px;}
   }
 </style>
 </head>
@@ -293,6 +329,9 @@
   </div>
 </header>
 
+<!-- Filled only when the self-check finds something wrong. Invisible otherwise. -->
+<div class="diag" id="diag"></div>
+
 <section class="hero">
   <div class="cartouche">
     <div class="eyebrow">An unofficial community project</div>
@@ -318,6 +357,13 @@
     <h2>MiniMax World Fleet Map</h2>
     <div class="coords">LIVE · CLUSTERED BY REGION</div>
   </div>
+
+  <div class="demo-flag" id="demoFlag">
+    <strong>Demonstration data.</strong> The live register could not be reached from this
+    page, so the four pins below are anonymous samples for layout purposes — they are not
+    real registrations, and the counters above match the samples, not the database.
+  </div>
+
   <div class="filters">
     <button class="active" data-filter="all">All</button>
     <button data-filter="sailing">Sailing</button>
@@ -634,63 +680,49 @@
   /* ==================================================================
      MiniMax World Fleet Map
 
-     v0.9.6-alpha changelog — THE ACTUAL FIX
+     v0.9.8-alpha — the file that leaves here is not the file that arrives
 
-     · The v0.9.5 CSP was correct and had no effect, because the old,
-       narrower CSP meta tag was still sitting above it in <head>. Two
-       policies were being enforced at once.
+     Four versions were spent rewriting the CSP meta tag in this document. That
+     was the wrong object all along. The file as downloaded had a SECOND CSP meta
+     tag inserted above ours by the tool that served it, and that inserted line
+     travels with the file to any host. Because policies intersect (CSP §8.1),
+     the strictest wins; because a parsed meta policy cannot be modified or
+     removed, JavaScript cannot rescue it. So the symptoms followed the file onto
+     GitHub Pages and looked like a hosting problem, which it never was.
 
-       This is the part that wastes an afternoon: multiple policies do NOT
-       override one another and the last one does not win. Per the CSP spec
-       (§8.1, "The effect of multiple policies"), a request must be allowed
-       by EVERY active policy. Adding a policy can only ever narrow what is
-       permitted — never widen it. So:
+     There is therefore no CSP meta tag in this document at all, and a self-check
+     that reports what is actually in force:
 
-         old policy: no connect-src at all -> falls back to its own
-                     default-src, which never listed Supabase -> REFUSED
-         new policy: connect-src includes Supabase -> allowed
+       · a CSP meta tag in the DOM *and* in the bytes fetched from this URL
+         -> the file on disk is contaminated. The banner offers a cleaned copy
+            for download, generated by stripping those lines from the source.
+            Re-upload that, and nothing else needs doing.
+       · a CSP meta tag in the DOM but *not* in the fetched bytes
+         -> the host injects it while rendering. Only a different host fixes it.
+       · no CSP meta tag but requests still refused
+         -> the policy is an HTTP response header. A document cannot relax a
+            header-delivered policy either; also a different host.
 
-       Intersection of "refused" and "allowed" is refused. The fix was
-       vetoed by the tag above it, which is why the symptoms did not budge.
+     Two host traps this now names outright, because both look like a broken
+     page: raw.githubusercontent.com serves HTML as text/plain with
+     default-src 'none'; sandbox, so nothing renders or runs, and github.com/...
+     blob URLs are a code viewer, not a page. GitHub Pages must be switched on
+     (Settings -> Pages -> Deploy from a branch -> main / root) and the site
+     opened at the username.github.io address.
 
-       There is now exactly ONE Content-Security-Policy meta tag, and one
-       x-poe-datastore-behavior tag. <meta charset> is first in <head>, as
-       it must be. That single change restores all three broken things:
-       the sign-in email, the CARTO basemap, and Nominatim geocoding.
+     Also in this version: the four demo pins are anonymous. Naming real people
+     on placeholder data invites a screenshot being quoted back as a real fleet.
 
-     · HOW TO TELL IF THIS IS STILL NOT ENOUGH: if the console still names a
-       directive whose contents do not match the meta tag above, the policy
-       is arriving as an HTTP *header* from the host. A document cannot relax
-       a header-delivered policy — no edit to this file will help, and the
-       page has to move to a host that does not send one.
-
-     · CHANGED: emailRedirectTo now uses origin + pathname (see REDIRECT_TO)
-       instead of window.location.href. href drags along the #access_token
-       fragment left by a previous magic link, and the resulting URL may not
-       match the allow-list in Authentication -> URL Configuration.
-
-     v0.9.5-alpha
-     · Widened the CSP to name Supabase, Nominatim and CARTO. Correct, but
-       inert until the duplicate tag above it was removed — see above.
-     · ADDED explainAuthError(): Supabase's built-in sender allows roughly
-       two emails per hour with a 60-second gap, both returned as opaque
-       errors. Both are now named.
-     · FIXED: the pending registration was written to localStorage before
-       the email was known to have been sent, so a failed send left a stale
-       entry that would fire on some later visit.
-
-     v0.9.4-alpha
-     · FIXED the two Facebook destinations, which were the wrong way round,
-       and the /search/groups/ URL, which was a search results page.
-
-     v0.9.3-alpha
-     · REMOVED preview mode entirely.
-     · FIXED overlap: .map-wrap has isolation:isolate.
-     · FIXED the solid filled rectangles in the card bands.
+     Earlier, still current: emailRedirectTo uses origin + pathname, never
+     location.href, which drags along a stale #access_token; explainAuthError
+     names Supabase's two-per-hour and 60-second email limits; the pending
+     registration is stashed only after the email is away; the two Facebook
+     destinations are the right way round; .map-wrap is isolation:isolate; the
+     card bands rule with cell borders so a short row cannot paint a slab.
      ================================================================== */
 
   /* ---- EDIT-ME BLOCK: the only numbers and files you'll change often ---- */
-  const SITE_VERSION = 'v0.9.6-alpha · 20 Aug 2026';
+  const SITE_VERSION = 'v0.9.8-alpha · 20 Aug 2026';
 
   /* Email addresses, split so they never appear whole in the HTML source.
      Add a supplier by adding a key here plus data-mail="key" on the <a>. */
@@ -734,12 +766,22 @@
       file: 'docs/minimax-class-rules-v1.0-draft.pdf'
     }
   ];
+
+  /* Sample pins, shown ONLY when the live register is unreachable, and always
+     labelled as samples in the banner, the caption and every popup. Anonymous
+     on purpose. Delete this array and demo mode never activates. */
+  const DEMO_PINS = [
+    { name:'Sample builder', lat:38.47, lng:-28.40, country:'Portugal',
+      locality:'Pico Island, Azores', status:'building', boats:2, role:'builder', verified:false },
+    { name:'Sample builder', lat:-45.87, lng:170.50, country:'New Zealand',
+      locality:'Dunedin', status:'sailing', boats:3, role:'both', verified:true },
+    { name:'Sample builder', lat:50.82, lng:-0.14, country:'United Kingdom',
+      locality:'Brighton', status:'sailing', boats:1, role:'owner', verified:true },
+    { name:'Sample builder', lat:29.76, lng:-95.37, country:'United States',
+      locality:'Houston, Texas', status:'planning', boats:1, role:'builder', verified:false }
+  ];
   /* ---------------------- END EDIT-ME BLOCK ---------------------------- */
 
-  /* TRAP, and it cost exactly that hour: this URL also has to appear in the
-     Content-Security-Policy meta tag at the top of the file, in BOTH
-     default-src and connect-src (https and wss) — and there must be only ONE
-     such tag, or the narrowest one silently wins. */
   const SUPABASE_URL = 'https://fftavybqhrvjbeofqrnc.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdGF2eWJxaHJ2amJlb2Zxcm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI0NTMsImV4cCI6MjEwMjcwODQ1M30.2plNkkCD__49SKfcuoVSinvKlApGiX750r4bPbBlkR0';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -752,12 +794,12 @@
 
   document.getElementById('versionTag').textContent = SITE_VERSION;
 
-  // Clear anything left behind by the v0.9.2 preview experiment.
   try { localStorage.removeItem('minimax_preview_pins'); } catch {}
 
   let fleet = [];
   let fleetLoadFailed = false;
   let fleetLoadReason = '';
+  let demoActive = false;
   let currentSession = null;
   let myEntry = null;
 
@@ -769,6 +811,161 @@
   const btnLogin   = document.getElementById('btnLogin');
   const btnRegister= document.getElementById('btnRegister');
   const flashEl    = document.getElementById('flash');
+  const demoFlagEl = document.getElementById('demoFlag');
+  const diagEl     = document.getElementById('diag');
+
+  /* ==================================================================
+     SELF-CHECK — answers "why is nothing loading?" on the page itself
+     ================================================================== */
+
+  // Every CSP meta tag actually in force in this document, whoever put it there.
+  const CSP_METAS = Array.prototype.slice.call(document.querySelectorAll('meta'))
+    .filter(m => (m.getAttribute('http-equiv') || '').toLowerCase() === 'content-security-policy');
+
+  // Violations are the ground truth: they name the directive that refused.
+  const cspViolations = [];
+  document.addEventListener('securitypolicyviolation', e => {
+    const line = e.violatedDirective + ' blocked ' + String(e.blockedURI || '').slice(0, 70);
+    if (cspViolations.indexOf(line) === -1) cspViolations.push(line);
+  });
+
+  let pageSource = null;   // bytes of this file as the server sends them
+  let sourceReadError = null;
+
+  function showDiag(html){ diagEl.innerHTML = html; diagEl.classList.add('show'); }
+
+  function violationList(){
+    return cspViolations.length
+      ? `<div class="diag-detail">Refused so far: ${esc(cspViolations.slice(0,6).join(' · '))}</div>`
+      : '';
+  }
+
+  /* Strip the inserted lines from this file's own source and hand it back as a
+     download. Fetching our own URL is same-origin, so 'self' permits it under
+     any sane policy — which is why this works even while the page is crippled. */
+  async function downloadCleanedCopy(btn){
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Building clean copy…';
+    try {
+      let src = pageSource;
+      if (src == null) {
+        const res = await fetch(window.location.href, { cache: 'no-store' });
+        src = await res.text();
+      }
+      const before = src.length;
+      // The content attribute of a CSP meta never contains '>', so [^>]+ is safe.
+      src = src.replace(/[ \t]*<meta[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>[ \t]*\r?\n?/gi, '');
+      src = src.replace(/[ \t]*<meta[^>]*x-poe-datastore-behavior[^>]*>[ \t]*\r?\n?/gi, '');
+      if (src.length === before) {
+        btn.disabled = false;
+        btn.textContent = original;
+        flash('Nothing to strip — the file on the server is already clean, so the policy is being added by the host. A different host is the only fix.', true);
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/html' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = 'index.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      btn.textContent = 'Downloaded — re-upload this one';
+      flash('Cleaned copy downloaded. Replace index.html in your repository with it, wait for the deploy, then reload.');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = original;
+      flash('Could not read this page’s own source: ' + String((err && err.message) || err), true);
+    }
+  }
+  window.downloadCleanedCopy = downloadCleanedCopy;
+
+  async function readOwnSource(){
+    try {
+      const res = await fetch(window.location.href, { cache: 'no-store' });
+      pageSource = await res.text();
+    } catch (err) { sourceReadError = err; }
+  }
+
+  async function diagnose(){
+    const host = window.location.hostname;
+
+    // --- host traps that look exactly like a broken page ---
+    if (host === 'raw.githubusercontent.com') {
+      showDiag(`<div class="diag-t">Wrong URL — this cannot work here</div>
+        GitHub serves raw files as <code>text/plain</code> with the header
+        <code>default-src 'none'; sandbox</code>, so no HTML renders and no script runs.
+        Turn on GitHub Pages instead:
+        <ol><li>Repository → <strong>Settings</strong> → <strong>Pages</strong></li>
+        <li>Source: <strong>Deploy from a branch</strong> → <code>main</code> → <code>/ (root)</code></li>
+        <li>Wait for the green tick, then open the <code>username.github.io/repo/</code> address it gives you</li>
+        <li>Put that same address in Supabase → Authentication → URL Configuration</li></ol>`);
+      return;
+    }
+    if (host === 'github.com') {
+      showDiag(`<div class="diag-t">Wrong URL — this is the code viewer</div>
+        A <code>github.com/user/repo/blob/…</code> address shows the source of the file, not the
+        page. Enable GitHub Pages (Settings → Pages → Deploy from a branch → main → /root) and
+        open the <code>username.github.io</code> address.`);
+      return;
+    }
+    if (window.location.protocol === 'file:') {
+      showDiag(`<div class="diag-t">Opened as a local file</div>
+        The map and database work over <code>file://</code> in some browsers but the sign-in link
+        cannot: Supabase must redirect to an <code>http(s)</code> address. Publish the file to
+        finish testing registration.`);
+      return;
+    }
+
+    const bad = CSP_METAS.filter(m => !/supabase\.co/i.test(m.getAttribute('content') || ''));
+
+    // --- no meta policy: either fine, or a header is doing it ---
+    if (!bad.length) {
+      if (cspViolations.length) {
+        showDiag(`<div class="diag-t">Blocked by a policy this page cannot change</div>
+          There is no Content-Security-Policy meta tag in this document, yet requests are being
+          refused — so the policy arrives as an HTTP response header from the host. A document
+          cannot relax a header-delivered policy: policies intersect, and the strictest wins.
+          Move the file to a host that does not send one (GitHub Pages, Netlify Drop,
+          Cloudflare Pages).${violationList()}`);
+      }
+      return;
+    }
+
+    // --- a meta policy is in force and does not allow Supabase ---
+    await readOwnSource();
+    const inFile = pageSource == null ? null
+      : /http-equiv\s*=\s*["']?content-security-policy/i.test(pageSource);
+
+    if (inFile === true) {
+      showDiag(`<div class="diag-t">This file contains an injected security policy</div>
+        A <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> line near the top of
+        <code>index.html</code> does not list <code>supabase.co</code>, so the database, the
+        basemap and geocoding are all refused — on any host, because the line travels inside the
+        file. It cannot be removed by script: once parsed, a meta policy is permanent for that
+        page load. The line simply has to be absent from the file.
+        <div class="diag-act">
+          <button class="btn-brass" onclick="downloadCleanedCopy(this)">Download cleaned index.html</button>
+          <span>then replace the file in your repository with it</span>
+        </div>${violationList()}`);
+      return;
+    }
+
+    if (inFile === false) {
+      showDiag(`<div class="diag-t">The host is injecting a security policy</div>
+        A policy is in force in this page, but it is <em>not</em> in the file the server sends —
+        so it is being added while rendering. Nothing in this file can change that; the page has
+        to be served from somewhere else (GitHub Pages, Netlify Drop, Cloudflare Pages).${violationList()}`);
+      return;
+    }
+
+    showDiag(`<div class="diag-t">Blocked by a security policy</div>
+      A Content-Security-Policy meta tag in this page does not list <code>supabase.co</code>.
+      This page could not read its own source to confirm whether that line is in the file
+      (${esc(String((sourceReadError && sourceReadError.message) || 'request refused'))}), but the
+      likeliest cause is an injected line at the top of <code>index.html</code>.
+      <div class="diag-act">
+        <button class="btn-brass" onclick="downloadCleanedCopy(this)">Try downloading a cleaned copy</button>
+      </div>${violationList()}`);
+  }
 
   // ---- helpers ----
   function esc(s){
@@ -785,11 +982,11 @@
     flashEl.classList.toggle('err', !!isError);
     flashEl.classList.add('show');
     clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => flashEl.classList.remove('show'), isError ? 9000 : 5000);
+    flashTimer = setTimeout(() => flashEl.classList.remove('show'), isError ? 9000 : 6000);
   }
   /* A request blocked by policy and a dead network are the same object to
-     JavaScript: a TypeError with a vague message. Worth naming, because the
-     cure for one is a header and for the other is a cable. */
+     JavaScript: a TypeError with a vague message. Worth separating, because the
+     cure for one is a file edit and for the other is a cable. */
   function looksBlocked(err){
     const m = String((err && err.message) || err || '').toLowerCase();
     return m.includes('failed to fetch') || m.includes('load failed') ||
@@ -797,15 +994,11 @@
            m.includes('fetch failed');
   }
   const BLOCKED_EXPLANATION =
-    'The request never left the browser. Open the console: a content-security-policy ' +
-    'violation names the directive that refused it. Check there is only ONE ' +
-    'Content-Security-Policy meta tag in this file — two are enforced together and ' +
-    'the narrowest wins. If the directive named does not match that tag, the policy ' +
-    'is coming from an HTTP header and the page needs a different host. Otherwise, ' +
-    'check you are online.';
+    'The request never left the browser — a content-security-policy refused it. See the red ' +
+    'banner at the top of this page: it says whether that policy is a line inside this file ' +
+    '(in which case it offers you a cleaned copy to re-upload) or something the host is adding. ' +
+    'If no banner appeared, check you are online.';
 
-  /* Supabase returns these as ordinary auth errors with terse text. Both are
-     easy to mistake for a broken integration, and neither is. */
   function explainAuthError(error){
     const raw = String((error && error.message) || error || '');
     const m = raw.toLowerCase();
@@ -829,10 +1022,6 @@
     const p = MAIL[key];
     return p ? p[0] + String.fromCharCode(64) + p[1] : null;
   }
-  /* The address is never in the DOM until someone points at the link, so a
-     headless scraper that renders the page and dumps the DOM gets nothing.
-     pointerdown fires before click, so the first click still works, and it
-     fires on right-click too, so "Copy email address" works. */
   function armEmailLinks(root){
     (root || document).querySelectorAll('a[data-mail]:not([data-armed])').forEach(el => {
       if (!MAIL[el.dataset.mail]) return;
@@ -851,7 +1040,6 @@
       ['pointerdown','pointerenter','touchstart','focus','contextmenu']
         .forEach(ev => el.addEventListener(ev, arm, { passive: true }));
 
-      // an <a> with no href is not keyboard-activatable, so do it by hand
       el.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -905,11 +1093,10 @@
 
   let tileOk = false, fallbackDrawn = false;
 
-  /* If tiles never arrive, draw a graticule rather than leave a dead
-     rectangle, so pins still have a readable frame of reference.
-     Seeing this is also the single most useful diagnostic on the page: if the
-     basemap is blocked, the Supabase calls are being refused by the same
-     policy, and the sign-in email will fail too. */
+  /* If tiles never arrive, draw a graticule rather than leave a dead rectangle,
+     so pins still have a frame of reference. Seeing this is also the fastest
+     diagnostic on the page: if the basemap is refused, the database calls are
+     being refused by the same policy. */
   function drawFallbackChart(){
     if (fallbackDrawn) return;
     fallbackDrawn = true;
@@ -920,7 +1107,11 @@
     for (let lat = -80; lat <= 80; lat += 20) g.addLayer(L.polyline([[lat,-180],[lat,180]], style));
     g.addLayer(L.polyline([[0,-180],[0,180]], {color:'#c99a3a', weight:1, opacity:.5, dashArray:'6 6', interactive:false}));
     g.addTo(map);
-    setMapNote('Basemap tiles could not be loaded, so this is a plain graticule chart. Pins and clustering still work. If registration also fails, both are being refused by the same content-security-policy — check there is only one CSP meta tag in this file.');
+    if (!demoActive) {
+      setMapNote('Basemap tiles could not be loaded, so this is a plain graticule chart. Pins and ' +
+                 'clustering still work. The banner at the top of the page explains which policy ' +
+                 'refused the tiles and how to remove it.');
+    }
   }
 
   const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -985,13 +1176,18 @@
         const place = [f.locality, f.country].filter(Boolean).join(', ');
         const statusClass = ['sailing','building','planning'].includes(f.status) ? f.status : 'planning';
         const verifiedBadge = f.verified ? '<span class="badge verified">Licence verified</span>' : '';
+        // Demo pins say so inside the popup too, not only in the banner.
+        const demoBadge = demoActive ? '<span class="badge demo">Sample data</span>' : '';
+        const demoLine = demoActive
+          ? '<div class="meta" style="color:#b5502a;">Not a real registration — placeholder pin.</div>' : '';
         m.bindPopup(`
           <div class="popup-card">
             ${photoHtml}
             <div class="name">${esc(f.name)}</div>
             <div class="loc">${esc(place)}</div>
-            <span class="badge ${statusClass}">${esc(f.status)}</span>${verifiedBadge}
+            ${demoBadge}<span class="badge ${statusClass}">${esc(f.status)}</span>${verifiedBadge}
             <div class="meta">${esc(f.role)} · ${esc(f.boats)} MiniMax built</div>
+            ${demoLine}
           </div>
         `);
         markers.push(m);
@@ -1018,6 +1214,13 @@
     const caption = document.getElementById('mapCaption');
     const privacy = 'Only approximate locality is ever public; exact coordinates are never stored or shown.';
 
+    if (demoActive) {
+      caption.textContent =
+        'SAMPLE DATA — these four pins are anonymous placeholders shown because the live register ' +
+        'is unreachable from this page. They are not real registrations and must not be quoted as ' +
+        'fleet numbers.';
+      return;
+    }
     if (fleetLoadFailed) {
       caption.textContent = `Fleet data unavailable — see the note on the chart. ${privacy}`;
       return;
@@ -1032,12 +1235,34 @@
     caption.textContent = `Showing ${lastCounts.plotted} registered MiniMax sailor${lastCounts.plotted===1?'':'s'}.${extra} A brass ring marks a licence-verified boat. ${privacy}`;
   }
 
+  // ---- demo mode ----
+  function activateDemoMode(){
+    if (demoActive || !DEMO_PINS.length) return;
+    demoActive = true;
+    fleet = DEMO_PINS.slice();
+    lastCounts = { plotted: fleet.length, unplotted: 0 };
+    demoFlagEl.classList.add('show');
+    setMapNote('SAMPLE PINS — the live database is being refused by a content-security-policy, so ' +
+               'these four are anonymous placeholders, not real registrations. The banner at the ' +
+               'top of the page says how to remove that policy.');
+    // Keep the counters consistent with what is actually on the map.
+    const sum = (k) => fleet.reduce((n, f) => n + (Number(f[k]) || 0), 0);
+    setNum('stat-boats', sum('boats'));
+    setNum('stat-countries', new Set(fleet.map(f => f.country)).size);
+    setNum('stat-builders', fleet.filter(f => f.role === 'builder' || f.role === 'both').length);
+    setNum('stat-sailing', fleet.filter(f => f.status === 'sailing').length);
+    setNum('stat-verified', fleet.filter(f => f.verified).length);
+    document.getElementById('stat-verified-wrap').style.display = '';
+  }
+
   async function loadFleetFromSupabase(){
     fleetLoadFailed = false;
     fleetLoadReason = '';
     try {
       const { data, error } = await sb.from('public_fleet').select('*');
       if (error) throw error;
+      demoActive = false;
+      demoFlagEl.classList.remove('show');
       const rows = data || [];
       lastCounts.unplotted = rows.filter(r => r.lat === null || r.lng === null).length;
       fleet = rows
@@ -1058,12 +1283,17 @@
         ? BLOCKED_EXPLANATION
         : 'The database replied with an error: ' + String((err && err.message) || err);
       console.error('Fleet load failed:', err);
+      if (looksBlocked(err)) activateDemoMode();
     }
     renderFleet(currentFilter());
     updateCaption();
   }
 
   // ---- stats ----
+  function setNum(id, value){
+    const el = document.getElementById(id);
+    if (el) { if (el._timer) clearInterval(el._timer); el.textContent = value; }
+  }
   function animateNum(el, target){
     if (el._timer) clearInterval(el._timer);
     let n=0; const step = Math.max(1, Math.ceil(target/30));
@@ -1085,6 +1315,7 @@
       }
     } catch (err) {
       console.error('Stats load failed:', err);
+      if (looksBlocked(err)) activateDemoMode();
     }
   }
 
@@ -1261,9 +1492,8 @@
       return false;
     }
 
-    /* Only now is it worth stashing: the email is genuinely on its way, so
-       there will be a return visit to complete. Writing this before the send
-       left a stale entry behind on every failure. */
+    /* Only now is it worth stashing: the email is genuinely on its way, so there
+       will be a return visit to complete. */
     localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...entry }));
     regStatus.textContent = `Check ${email} for a sign-in link — clicking it finishes your registration.`;
     return false;
@@ -1338,6 +1568,9 @@
     applyAuthUI();
     loadStatsFromSupabase();
     loadFleetFromSupabase();
+
+    // Run the self-check after the first requests, so any violation has fired.
+    setTimeout(diagnose, 1200);
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
@@ -1355,5 +1588,5 @@
   init();
 </script>
 
-
-</body></html>
+</body>
+</html>
