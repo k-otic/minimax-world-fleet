@@ -24,7 +24,11 @@
   <p>Sign in with the address registered as class admin.</p>
   <div class="row">
     <input id="email" type="email" placeholder="you@example.com" size="28">
-    <button class="ok" id="send">Send link</button>
+    <button class="ok" id="send">Send code</button>
+  </div>
+  <div class="row" id="codeRow" hidden="">
+    <input id="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="sign-in code" size="16">
+    <button class="ok" id="verify">Verify</button>
   </div>
   <p id="gateMsg" class="muted"></p>
 </div>
@@ -48,11 +52,24 @@ const esc = s => String(s ?? '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;'
 $('#send').onclick = async () => {
   const email = $('#email').value.trim();
   if (!email) return;
+  $('#send').disabled = true;
   $('#gateMsg').textContent = 'Sending…';
-  const { error } = await sb.auth.signInWithOtp({
-    email, options: { emailRedirectTo: location.href.split('#')[0] }
-  });
-  $('#gateMsg').textContent = error ? error.message : 'Check your inbox.';
+  const { error } = await sb.auth.signInWithOtp({ email });
+  $('#send').disabled = false;
+  if (error) { $('#gateMsg').textContent = error.message; return; }
+  $('#gateMsg').textContent = 'Check your inbox for a sign-in code.';
+  $('#codeRow').hidden = false;
+  $('#code').focus();
+};
+$('#verify').onclick = async () => {
+  const email = $('#email').value.trim();
+  const code = $('#code').value.trim();
+  if (!email || !code) return;
+  $('#verify').disabled = true;
+  $('#gateMsg').textContent = 'Verifying…';
+  const { error } = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+  $('#verify').disabled = false;
+  if (error) { $('#gateMsg').textContent = error.message; return; }
 };
 $('#out').onclick = async e => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
 $('#showAll').onchange = load;

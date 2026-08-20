@@ -514,7 +514,7 @@
     </details>
     <details class="faq-item">
       <summary>How do I update my status later (planning → building → sailing)?</summary>
-      <p>Click <strong>Log In</strong>, enter the email you registered with, and follow the sign-in link. Your entry loads pre-filled — change the status and save. Registering a second time is never needed and never creates a duplicate boat.</p>
+      <p>Click <strong>Log In</strong>, enter the email you registered with, and enter the sign-in code we send you. Your entry loads pre-filled — change the status and save. Registering a second time is never needed and never creates a duplicate boat.</p>
     </details>
     <details class="faq-item">
       <summary>Is this site run by Castlerock Yachtworks?</summary>
@@ -587,9 +587,13 @@
         <label>Email address ·</label>
         <input type="email" name="email" required="" placeholder="you@example.com">
       </div>
-      <p style="font-size:12px;color:#555;margin:-6px 0 4px;">We’ll email you a one-click sign-in link — no password needed.</p>
+      <div class="field" id="loginCodeField" hidden="">
+        <label>Sign-in code ·</label>
+        <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="Enter the code from your email">
+      </div>
+      <p style="font-size:12px;color:#555;margin:-6px 0 4px;">We’ll email you a one-time sign-in code — no password needed.</p>
       <p id="loginStatus" style="font-family:var(--font-mono);font-size:11.5px;color:var(--brass-dim);min-height:16px;margin:2px 0 8px;"></p>
-      <button type="submit" class="btn-brass submit">Send sign-in link</button>
+      <button type="submit" class="btn-brass submit" id="loginSubmit">Send code</button>
       <p class="map-caption" style="text-align:center;margin-top:14px;color:#555;">No account yet? <a href="#" onclick="closeLogin();openModal();return false;" style="color:var(--brass-dim);text-decoration:underline;">Register your boat</a></p>
     </form>
   </div>
@@ -604,6 +608,11 @@
       <div class="field">
         <label>Email address ·</label>
         <input type="email" name="email" required="" placeholder="you@example.com">
+      </div>
+      <div class="field" id="regCodeField" hidden="">
+        <label>Sign-in code ·</label>
+        <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="Enter the code from your email">
+        <p class="hint">Sent to the email above — enter it here to finish.</p>
       </div>
       <div class="field">
         <label>Display name (public, optional)</label>
@@ -713,16 +722,33 @@
      Also in this version: the four demo pins are anonymous. Naming real people
      on placeholder data invites a screenshot being quoted back as a real fleet.
 
-     Earlier, still current: emailRedirectTo uses origin + pathname, never
-     location.href, which drags along a stale #access_token; explainAuthError
-     names Supabase's two-per-hour and 60-second email limits; the pending
-     registration is stashed only after the email is away; the two Facebook
-     destinations are the right way round; .map-wrap is isolation:isolate; the
-     card bands rule with cell borders so a short row cannot paint a slab.
+     v0.9.9-alpha — sign-in is a one-time code now, not a clickable link. The
+     inputs below deliberately don't assume 6 digits: GOTRUE_MAILER_OTP_LENGTH
+     is set per-project (6-10 digits, Authentication -> Emails) and this one
+     issues 8. maxlength is 10 everywhere a code is typed, to fit any project.
+     Custom SMTP (Brevo) rewrites every link it relays for its own click
+     tracking, and that rewrite gets *followed* — by Brevo's own link-check,
+     or by a mail client prefetching it — before the real recipient ever
+     clicks. Supabase's one-time link is consumed by that first, silent
+     visit, so the human arrives to `otp_expired`. Brevo has no per-email or
+     per-sender switch to turn this off for transactional SMTP; it is baked
+     into the relay. The fix Supabase itself documents for this exact
+     failure mode is to stop shipping a clickable link at all: send the OTP,
+     let the person copy the 6 digits out of the email, verify with
+     `sb.auth.verifyOtp({ email, token, type: 'email' })`. No link, nothing
+     for a tracker to burn. This does mean the Supabase email templates
+     (Confirm signup / Magic Link) must actually contain `{{ .Token }}` in
+     their body — the stock templates only print the link.
+
+     Earlier, still current: explainAuthError names Supabase's two-per-hour
+     and 60-second email limits; the pending registration is stashed only
+     after the email is away; the two Facebook destinations are the right
+     way round; .map-wrap is isolation:isolate; the card bands rule with
+     cell borders so a short row cannot paint a slab.
      ================================================================== */
 
   /* ---- EDIT-ME BLOCK: the only numbers and files you'll change often ---- */
-  const SITE_VERSION = 'v0.9.8-alpha · 20 Aug 2026';
+  const SITE_VERSION = 'v0.9.9-alpha · 20 Aug 2026';
 
   /* Email addresses, split so they never appear whole in the HTML source.
      Add a supplier by adding a key here plus data-mail="key" on the <a>. */
@@ -786,12 +812,6 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdGF2eWJxaHJ2amJlb2Zxcm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI0NTMsImV4cCI6MjEwMjcwODQ1M30.2plNkkCD__49SKfcuoVSinvKlApGiX750r4bPbBlkR0';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  /* Where the magic link comes back to. Deliberately NOT location.href: that
-     would include any leftover #access_token or ?query, and Supabase matches
-     this against the Redirect URLs allow-list. This exact string is what must
-     be listed under Authentication -> URL Configuration. */
-  const REDIRECT_TO = window.location.origin + window.location.pathname;
-
   document.getElementById('versionTag').textContent = SITE_VERSION;
 
   try { localStorage.removeItem('minimax_preview_pins'); } catch {}
@@ -802,6 +822,8 @@
   let demoActive = false;
   let currentSession = null;
   let myEntry = null;
+  let regStep = 'form';    // 'form' | 'code' — where the (signed-out) registration form is
+  let loginStep = 'send';  // 'send' | 'code' — where the login form is
 
   const regForm    = document.getElementById('regForm');
   const regTitle   = document.getElementById('regTitle');
@@ -907,13 +929,6 @@
         open the <code>username.github.io</code> address.`);
       return;
     }
-    if (window.location.protocol === 'file:') {
-      showDiag(`<div class="diag-t">Opened as a local file</div>
-        The map and database work over <code>file://</code> in some browsers but the sign-in link
-        cannot: Supabase must redirect to an <code>http(s)</code> address. Publish the file to
-        finish testing registration.`);
-      return;
-    }
 
     const bad = CSP_METAS.filter(m => !/supabase\.co/i.test(m.getAttribute('content') || ''));
 
@@ -1002,7 +1017,7 @@
   function explainAuthError(error){
     const raw = String((error && error.message) || error || '');
     const m = raw.toLowerCase();
-    if (looksBlocked(m)) return 'No sign-in link could be sent. ' + BLOCKED_EXPLANATION;
+    if (looksBlocked(m)) return 'No code could be sent. ' + BLOCKED_EXPLANATION;
     if (m.includes('rate limit') || (error && error.status === 429))
       return 'Supabase refused on its email rate limit. The built-in sender allows only ' +
              'about two messages an hour and may only deliver to addresses on the ' +
@@ -1011,9 +1026,9 @@
     if (m.includes('for security purposes') || m.includes('only request this after'))
       return 'Too soon after the last attempt — Supabase enforces a 60-second gap ' +
              'between sign-in emails. Try again in a minute. (' + raw + ')';
-    if (m.includes('redirect') || m.includes('not allowed'))
-      return 'Supabase rejected the redirect target. Add this exact URL to ' +
-             'Authentication → URL Configuration → Redirect URLs: ' + REDIRECT_TO;
+    if (m.includes('expired') || m.includes('invalid') || m.includes('token'))
+      return 'That code is wrong or has expired. Request a new one and enter it as soon ' +
+             'as it arrives — codes are single-use and time-limited.';
     return 'Something went wrong: ' + raw;
   }
 
@@ -1338,11 +1353,20 @@
   // ---- modals ----
   function openModal(){
     regStatus.textContent = '';
+    if (!currentSession) {
+      regStep = 'form';
+      document.getElementById('regCodeField').hidden = true;
+      regForm.email.readOnly = false;
+      regSubmit.textContent = 'Add me to the chart';
+    }
     document.getElementById('modalOverlay').classList.add('open');
   }
   function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
   function openLogin(){
+    loginStep = 'send';
     document.getElementById('loginStatus').textContent = '';
+    document.getElementById('loginCodeField').hidden = true;
+    document.getElementById('loginSubmit').textContent = 'Send code';
     document.getElementById('loginOverlay').classList.add('open');
   }
   function closeLogin(){ document.getElementById('loginOverlay').classList.remove('open'); }
@@ -1392,6 +1416,8 @@
     const signedIn = !!currentSession;
     btnLogin.textContent = signedIn ? 'Log Out' : 'Log In';
     btnRegister.textContent = signedIn ? 'My Entry' : 'Register';
+    document.getElementById('regCodeField').hidden = true;
+    if (signedIn) regStep = 'form';
 
     if (signedIn) {
       regForm.email.value = currentSession.user.email;
@@ -1481,21 +1507,41 @@
 
     const email = regForm.email.value.trim();
 
-    regSubmit.disabled = true;
-    regStatus.textContent = 'Sending your sign-in link…';
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT_TO } });
-    regSubmit.disabled = false;
+    if (regStep === 'form') {
+      regSubmit.disabled = true;
+      regStatus.textContent = 'Sending your code…';
+      const { error } = await sb.auth.signInWithOtp({ email });
+      regSubmit.disabled = false;
 
-    if (error) {
-      regStatus.textContent = explainAuthError(error);
-      flash('Registration could not be started — your details are still in the form.', true);
+      if (error) {
+        regStatus.textContent = explainAuthError(error);
+        flash('Registration could not be started — your details are still in the form.', true);
+        return false;
+      }
+
+      /* Only now is it worth stashing: the email is genuinely on its way, so there
+         will be a return visit to complete. */
+      localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...entry }));
+      regStatus.textContent = `Check ${email} for a sign-in code — enter it below to finish.`;
+      document.getElementById('regCodeField').hidden = false;
+      regForm.email.readOnly = true;
+      regForm.querySelector('#regCodeField input').focus();
+      regSubmit.textContent = 'Verify code';
+      regStep = 'code';
       return false;
     }
 
-    /* Only now is it worth stashing: the email is genuinely on its way, so there
-       will be a return visit to complete. */
-    localStorage.setItem('minimax_pending_registration', JSON.stringify({ email, ...entry }));
-    regStatus.textContent = `Check ${email} for a sign-in link — clicking it finishes your registration.`;
+    // regStep === 'code'
+    const code = regForm.code.value.trim();
+    regSubmit.disabled = true;
+    regStatus.textContent = 'Verifying…';
+    const { error } = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+    regSubmit.disabled = false;
+    if (error) {
+      regStatus.textContent = explainAuthError(error);
+      return false;
+    }
+    // onAuthStateChange -> SIGNED_IN picks this up and completes the pending registration.
     return false;
   }
 
@@ -1504,14 +1550,37 @@
     const form = e.target;
     const statusEl = document.getElementById('loginStatus');
     const email = form.email.value.trim();
+    const submitBtn = document.getElementById('loginSubmit');
 
-    statusEl.textContent = 'Sending your sign-in link…';
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT_TO } });
+    if (loginStep === 'send') {
+      submitBtn.disabled = true;
+      statusEl.textContent = 'Sending your code…';
+      const { error } = await sb.auth.signInWithOtp({ email });
+      submitBtn.disabled = false;
+      if (error) {
+        statusEl.textContent = explainAuthError(error);
+        return false;
+      }
+      statusEl.textContent = `Check ${email} for a sign-in code.`;
+      document.getElementById('loginCodeField').hidden = false;
+      form.querySelector('#loginCodeField input').focus();
+      submitBtn.textContent = 'Verify code';
+      loginStep = 'code';
+      return false;
+    }
+
+    // loginStep === 'code'
+    const code = form.code.value.trim();
+    submitBtn.disabled = true;
+    statusEl.textContent = 'Verifying…';
+    const { error } = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+    submitBtn.disabled = false;
     if (error) {
       statusEl.textContent = explainAuthError(error);
       return false;
     }
-    statusEl.textContent = `Check ${email} for a sign-in link.`;
+    statusEl.textContent = 'Signed in.';
+    closeLogin();
     return false;
   }
 
