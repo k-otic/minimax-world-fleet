@@ -88,10 +88,40 @@ alone (see Architecture notes below).
 - The admin **Review** link on `index.html` is a discoverability convenience only —
   it calls the same `is_class_admin()` RPC that `review.html` itself enforces, so
   hiding or showing that link can never grant or block real access on its own.
+- **The HTML `hidden` attribute only works via the browser's own lowest-priority
+  stylesheet rule** (`[hidden]{display:none}`) — any author CSS class that sets
+  `display` on the same element (`.btn-outline`, `.row`, etc.) silently overrides it,
+  regardless of source order or specificity, because author rules always beat the
+  user-agent stylesheet. Both HTML files now carry an explicit
+  `[hidden]{display:none !important;}` rule near the top of `<style>` to guard
+  against this — keep it if you add more conditionally-shown elements, and don't
+  trust `element.hidden` reading `true` in the DOM as proof something is actually
+  invisible on screen; check `getComputedStyle(el).display` too.
+- **Data protection is via Row-Level Security, not column encryption.** Neither the
+  EU/UK GDPR nor New Zealand's Privacy Act 2020 (Castlerock Yachtworks is
+  NZ-based, many registrants are in the EU — both regimes apply) mandate encrypting
+  stored personal data; both ask for security "reasonable"/"appropriate" to the
+  risk. Verified live: `boats.email` is unreadable to anonymous requests
+  (`permission denied for table boats`), and the public `public_fleet` view doesn't
+  even have an `email` column (`column public_fleet.email does not exist`) — so it
+  can never leak through the map or the stat counters. A user can delete their own
+  `boats` row (right to erasure) via **Log In → Delete my entry** on `index.html`;
+  this relies on an existing RLS policy permitting `delete` where
+  `auth.uid() = user_id` — if that policy is ever removed, this feature needs it
+  back to keep working.
 
 ## Changelog
 
 Dated by when each change went live.
+
+**2026-08-20 — Privacy: self-service deletion, and a fixed "hidden" bug.** Added a
+short privacy note to the registration form, two FAQ entries covering what's
+collected/why and which privacy laws apply (GDPR and NZ's Privacy Act 2020), and a
+**Delete my entry** option for signed-in users — verified live, including that the
+row is genuinely gone from the database afterwards, not just hidden client-side.
+Also fixed a real bug caught while testing the admin link below: it was visible to
+everyone, logged in or not, because a CSS class overrode the `hidden` attribute
+(see Architecture notes).
 
 **2026-08-20 — Admin review link.** The review panel had no link to it anywhere on
 the public site. `index.html` now shows a "Review" link in the header for signed-in

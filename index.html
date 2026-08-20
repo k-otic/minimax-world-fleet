@@ -44,6 +44,10 @@
     --font-mono:'IBM Plex Mono', monospace;
   }
   *{box-sizing:border-box;}
+  /* The [hidden] attribute only works via the browser's own lowest-priority
+     stylesheet rule — any of our classes that set `display` (btn-outline,
+     .field, .row, etc.) silently win over it. Force it explicitly. */
+  [hidden]{display:none !important;}
   body{margin:0;background:var(--ink);color:var(--parchment);font-family:var(--font-body);line-height:1.5;}
   a{color:inherit;}
 
@@ -518,6 +522,14 @@
       <p>Click <strong>Log In</strong>, enter the email you registered with, and enter the sign-in code we send you. Your entry loads pre-filled — change the status and save. Registering a second time is never needed and never creates a duplicate boat.</p>
     </details>
     <details class="faq-item">
+      <summary>What happens to my data, and can I delete it?</summary>
+      <p>Your email is private — used only to sign you in, never shown publicly or to other sailors. Name, photo and locality appear on the map only if you tick the public-profile box. The STL licence reference is private too, seen only by class admins confirming a genuine licence, and never shown publicly. Log in any time to review, correct or delete your own entry — deleting removes your pin, your details and any verification note immediately, and cannot be undone. If you'd also like your sign-in email removed from the system entirely, contact Castlerock Yachtworks (see Links) and they can do that from the admin side.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Which privacy laws apply here?</summary>
+      <p>Both New Zealand's Privacy Act 2020 (Castlerock Yachtworks is based in Dunedin) and the EU/UK GDPR (many registrants are in the EU) apply, since together they cover where the class is run from and where sailors are registering from. Neither actually requires data to be encrypted in the database — both ask for security "reasonable"/"appropriate" to the risk, not a fixed checklist. This site meets that with access control instead: your email and licence reference are restricted by database rules so only you and a signed-in class admin can ever read them, rather than being encrypted outright — encrypting them would make everyday things like signing in or an admin confirming a licence impractical. Both laws also give you the right to see, correct and delete what's held about you, which is exactly what logging in and using <strong>Delete my entry</strong> does.</p>
+    </details>
+    <details class="faq-item">
       <summary>Is this site run by Castlerock Yachtworks?</summary>
       <p>Not yet — it is a community-built proposal being put to Brett and the group admins. If adopted, ownership and hosting will be arranged with Castlerock directly.</p>
     </details>
@@ -605,6 +617,12 @@
     <button class="close" onclick="closeModal()">✕</button>
     <h3 id="regTitle">Chart your MiniMax</h3>
     <div class="sub" id="regSub">Takes about a minute · fields marked with a dot are required</div>
+    <p style="font-size:12px;color:#555;margin:-4px 0 16px;line-height:1.5;">
+      <strong>Privacy:</strong> your email is only used to sign you in and is never shown publicly.
+      Name, photo and location appear on the map only if you tick the public-profile box below. Your
+      licence reference is private, used only to confirm a genuine STL licence. Log in any time to
+      review, correct, or delete your entry — see the FAQ for the full privacy note.
+    </p>
     <form id="regForm" onsubmit="return handleSubmit(event)">
       <div class="field">
         <label>Email address ·</label>
@@ -672,6 +690,9 @@
       </div>
       <p id="regStatus" style="font-family:var(--font-mono);font-size:11.5px;color:var(--brass-dim);min-height:16px;margin:10px 0 0;"></p>
       <button type="submit" class="btn-brass submit" id="regSubmit">Add me to the chart</button>
+      <p style="text-align:center;margin-top:14px;color:#555;font-size:12px;" id="deleteRow" hidden="">
+        <a href="#" id="deleteEntry" onclick="return deleteMyEntry(event)" style="color:var(--brass-dim);text-decoration:underline;">Delete my entry</a>
+      </p>
     </form>
   </div>
 </div>
@@ -1419,6 +1440,7 @@
     btnLogin.textContent = signedIn ? 'Log Out' : 'Log In';
     btnRegister.textContent = signedIn ? 'My Entry' : 'Register';
     document.getElementById('navReview').hidden = !(signedIn && isAdmin);
+    document.getElementById('deleteRow').hidden = !(signedIn && myEntry);
     document.getElementById('regCodeField').hidden = true;
     if (signedIn) regStep = 'form';
 
@@ -1457,6 +1479,35 @@
       if (error) { console.error('Could not load own entry:', error.message); return null; }
       return data || null;
     } catch (err) { console.error('Own-entry load failed:', err); return null; }
+  }
+
+  // Right to erasure: removes the boats row (name, location, photo, licence
+  // reference, contact preference) — the personal data this site actually
+  // displays or acts on. The sign-in email itself stays in Supabase Auth,
+  // since it's only ever used to authenticate; ask the class admin to remove
+  // the auth account too if you want that gone as well.
+  async function deleteMyEntry(e){
+    e.preventDefault();
+    if (!currentSession || !myEntry) return false;
+    if (!confirm('Delete your MiniMax entry? This removes your pin, your details and any ' +
+                  'licence-verification note from the fleet map. This cannot be undone.')) return false;
+
+    const link = document.getElementById('deleteEntry');
+    link.textContent = 'Deleting…';
+    const { error } = await sb.from('boats').delete().eq('user_id', currentSession.user.id);
+    if (error) {
+      link.textContent = 'Delete my entry';
+      flash('Could not delete: ' + (looksBlocked(error.message) ? BLOCKED_EXPLANATION : error.message), true);
+      return false;
+    }
+    myEntry = null;
+    regForm.reset();
+    applyAuthUI();
+    closeModal();
+    loadStatsFromSupabase();
+    loadFleetFromSupabase();
+    flash('Your entry was deleted.');
+    return false;
   }
 
   // Purely a discoverability convenience — review.html enforces this RPC itself,
