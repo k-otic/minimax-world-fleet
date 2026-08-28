@@ -488,7 +488,16 @@
     <button data-cat="epoxy">Epoxy</button>
     <button data-cat="other">Other</button>
   </div>
-  <div style="max-width:1180px;margin:0 auto 22px;">
+  <div style="max-width:1180px;margin:0 auto 22px;display:flex;gap:10px;flex-wrap:wrap;">
+    <select id="bomShipsToFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
+      <option value="all">Any shipping</option>
+      <option value="worldwide">Worldwide</option>
+      <option value="europe">Europe</option>
+      <option value="north_america">North America</option>
+      <option value="oceania">Oceania</option>
+      <option value="domestic_only">Domestic only</option>
+      <option value="other">Other</option>
+    </select>
     <select id="bomCountryFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
       <option value="all">All countries</option>
     </select>
@@ -755,19 +764,40 @@
     <div class="sub">Goes live after a quick check by a class admin</div>
     <form id="bomForm" onsubmit="return handleBomSubmit(event)">
       <div class="field">
-        <label>Category ·</label>
-        <select name="category" required="">
-          <option value="sail_fabric">Sail fabric</option>
-          <option value="carbon">Carbon</option>
-          <option value="electronics">Electronics</option>
-          <option value="hardware">Hardware / screws</option>
-          <option value="epoxy">Epoxy / adhesives</option>
-          <option value="other">Other</option>
+        <label>Part ·</label>
+        <select name="part_name" id="bomPartSelect" required="">
+          <option value="tx_rx_combo">Transmitter / Receiver / Combo</option>
+          <option value="servos">Servos</option>
+          <option value="battery">Battery</option>
+          <option value="charger">Charger</option>
+          <option value="ballast_bolt">Ballast bolt — M12 stainless, 100–150mm</option>
+          <option value="carbon_mast">Carbon rod — Mast, 3mm (min. 250mm — buy extra for trimming)</option>
+          <option value="carbon_rig_jointer">Carbon rod — Rig jointer, 3mm (min. 37mm — buy extra for trimming)</option>
+          <option value="carbon_boom">Carbon rod — Boom, 2mm (min. 154mm — buy extra for trimming)</option>
+          <option value="carbon_rig_pivot">Carbon rod — Rig pivot, 2mm (min. 33mm — buy extra for trimming)</option>
+          <option value="carbon_keel_stiffener">Carbon rod — Keel stiffener, 2mm (min. 78mm — buy extra for trimming)</option>
+          <option value="carbon_rudder_stock">Carbon rod — Rudder stock, 2mm (min. 32mm — buy extra for trimming)</option>
+          <option value="rod_clips">MinimumRC rod clips</option>
+          <option value="fishing_braid">Fishing braid — 8–10lb, for rope work</option>
+          <option value="sail_fabric">Sail fabric (buy extra — enough for A-rig, B-rig, and a future C-rig)</option>
+          <option value="epoxy">Epoxy / adhesive</option>
+          <option value="other">Other (see notes)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Ships to ·</label>
+        <select name="ships_to" required="">
+          <option value="worldwide">Worldwide</option>
+          <option value="europe">Europe</option>
+          <option value="north_america">North America</option>
+          <option value="oceania">Oceania</option>
+          <option value="domestic_only">Domestic only (their own country)</option>
+          <option value="other">Other — see notes</option>
         </select>
       </div>
       <div class="row2">
         <div class="field">
-          <label>Country ·</label>
+          <label>Supplier's country ·</label>
           <input type="text" name="country" required="" placeholder="e.g. Germany">
         </div>
         <div class="field">
@@ -1233,9 +1263,37 @@
     sail_fabric: 'Sail fabric', carbon: 'Carbon', electronics: 'Electronics',
     hardware: 'Hardware / screws', epoxy: 'Epoxy / adhesives', other: 'Other'
   };
+  // Submitters pick the exact part; category (used for the filter buttons)
+  // is derived from that, so nobody has to fill in both and risk a mismatch.
+  const PART_LABELS = {
+    tx_rx_combo: 'Transmitter / Receiver / Combo', servos: 'Servos',
+    battery: 'Battery', charger: 'Charger',
+    ballast_bolt: 'Ballast bolt — M12 stainless, 100–150mm',
+    carbon_mast: 'Carbon rod — Mast, 3mm (min. 250mm, buy extra)',
+    carbon_rig_jointer: 'Carbon rod — Rig jointer, 3mm (min. 37mm, buy extra)',
+    carbon_boom: 'Carbon rod — Boom, 2mm (min. 154mm, buy extra)',
+    carbon_rig_pivot: 'Carbon rod — Rig pivot, 2mm (min. 33mm, buy extra)',
+    carbon_keel_stiffener: 'Carbon rod — Keel stiffener, 2mm (min. 78mm, buy extra)',
+    carbon_rudder_stock: 'Carbon rod — Rudder stock, 2mm (min. 32mm, buy extra)',
+    rod_clips: 'MinimumRC rod clips', fishing_braid: 'Fishing braid (8–10lb)',
+    sail_fabric: 'Sail fabric (buy extra for A/B/future C rig)', epoxy: 'Epoxy / adhesive', other: 'Other'
+  };
+  const PART_TO_CATEGORY = {
+    tx_rx_combo: 'electronics', servos: 'electronics', battery: 'electronics', charger: 'electronics',
+    ballast_bolt: 'hardware', rod_clips: 'hardware', fishing_braid: 'hardware',
+    carbon_mast: 'carbon', carbon_rig_jointer: 'carbon', carbon_boom: 'carbon',
+    carbon_rig_pivot: 'carbon', carbon_keel_stiffener: 'carbon', carbon_rudder_stock: 'carbon',
+    sail_fabric: 'sail_fabric', epoxy: 'epoxy', other: 'other'
+  };
+  const SHIPS_TO_LABELS = {
+    worldwide: 'Ships worldwide', europe: 'Ships within Europe',
+    north_america: 'Ships within North America', oceania: 'Ships within Oceania',
+    domestic_only: 'Domestic shipping only', other: 'Shipping: see notes'
+  };
   let bomSources = [];
   let bomCategoryFilter = 'all';
   let bomCountryFilter = 'all';
+  let bomShipsToFilter = 'all';
 
   async function loadBomSources(){
     try {
@@ -1271,9 +1329,12 @@
     } else {
       cta = s.contact_note ? `<p class="map-caption" style="margin:0;">${esc(s.contact_note)}</p>` : '';
     }
+    const shipsBadge = s.ships_to
+      ? `<div class="meta" style="font-size:11px;color:var(--brass-dim);margin-bottom:6px;">${esc(SHIPS_TO_LABELS[s.ships_to] || s.ships_to)}</div>` : '';
     return `<div class="doc">
-      <div class="kind">${esc(CATEGORY_LABELS[s.category] || s.category)} · ${esc(place)}</div>
+      <div class="kind">${esc(PART_LABELS[s.part_name] || CATEGORY_LABELS[s.category] || s.category)} · ${esc(place)}</div>
       <h3>${esc(s.supplier_name)}</h3>
+      ${shipsBadge}
       ${s.notes ? `<p>${esc(s.notes)}</p>` : '<p></p>'}
       ${cta}
     </div>`;
@@ -1282,7 +1343,8 @@
   function renderBomList(){
     const list = bomSources.filter(s =>
       (bomCategoryFilter === 'all' || s.category === bomCategoryFilter) &&
-      (bomCountryFilter === 'all' || s.country === bomCountryFilter)
+      (bomCountryFilter === 'all' || s.country === bomCountryFilter) &&
+      (bomShipsToFilter === 'all' || s.ships_to === bomShipsToFilter)
     );
     document.getElementById('bomList').innerHTML = list.map(bomCard).join('');
     document.getElementById('bomEmpty').hidden = list.length > 0;
@@ -1298,6 +1360,10 @@
   });
   document.getElementById('bomCountryFilter').addEventListener('change', e => {
     bomCountryFilter = e.target.value;
+    renderBomList();
+  });
+  document.getElementById('bomShipsToFilter').addEventListener('change', e => {
+    bomShipsToFilter = e.target.value;
     renderBomList();
   });
 
@@ -1328,7 +1394,9 @@
     statusEl.textContent = 'Submitting…';
     const { error } = await sb.from('bom_sources').insert({
       user_id: currentSession.user.id,
-      category: form.category.value,
+      part_name: form.part_name.value,
+      category: PART_TO_CATEGORY[form.part_name.value] || 'other',
+      ships_to: form.ships_to.value,
       country: form.country.value.trim(),
       region: form.region.value.trim() || null,
       supplier_name: form.supplier_name.value.trim(),

@@ -106,10 +106,27 @@ const CATEGORY_LABELS = {
   sail_fabric: 'Sail fabric', carbon: 'Carbon', electronics: 'Electronics',
   hardware: 'Hardware', epoxy: 'Epoxy', other: 'Other'
 };
+const PART_LABELS = {
+  tx_rx_combo: 'Transmitter / Receiver / Combo', servos: 'Servos',
+  battery: 'Battery', charger: 'Charger',
+  ballast_bolt: 'Ballast bolt — M12 stainless, 100–150mm',
+  carbon_mast: 'Carbon rod — Mast, 3mm (min. 250mm, buy extra)',
+  carbon_rig_jointer: 'Carbon rod — Rig jointer, 3mm (min. 37mm, buy extra)',
+  carbon_boom: 'Carbon rod — Boom, 2mm (min. 154mm, buy extra)',
+  carbon_rig_pivot: 'Carbon rod — Rig pivot, 2mm (min. 33mm, buy extra)',
+  carbon_keel_stiffener: 'Carbon rod — Keel stiffener, 2mm (min. 78mm, buy extra)',
+  carbon_rudder_stock: 'Carbon rod — Rudder stock, 2mm (min. 32mm, buy extra)',
+  rod_clips: 'MinimumRC rod clips', fishing_braid: 'Fishing braid (8–10lb)',
+  sail_fabric: 'Sail fabric (buy extra for A/B/future C rig)', epoxy: 'Epoxy / adhesive', other: 'Other'
+};
+const SHIPS_TO_LABELS = {
+  worldwide: 'Worldwide', europe: 'Europe', north_america: 'North America',
+  oceania: 'Oceania', domestic_only: 'Domestic only', other: 'Other (see notes)'
+};
 
 async function loadBom() {
   const { data, error } = await sb.from('bom_sources')
-    .select('id,category,country,region,supplier_name,link,product_link,contact_note,notes,approved,approved_note,approved_at,created_at');
+    .select('id,category,country,region,supplier_name,link,product_link,contact_note,notes,approved,approved_note,approved_at,created_at,part_name,ships_to');
   if (error) { $('#bomPending').textContent = error.message; return; }
 
   const pend = data.filter(b => !b.approved);
@@ -130,7 +147,8 @@ function bomCard(b) {
   return `<div class="card">
     <h3>${esc(b.supplier_name)}
       ${b.approved ? '<span class="badge">approved</span>' : ''}</h3>
-    <div class="meta">${esc(CATEGORY_LABELS[b.category] || b.category)} · ${esc(place)}</div>
+    <div class="meta">${esc(PART_LABELS[b.part_name] || CATEGORY_LABELS[b.category] || b.category)} · ${esc(place)}</div>
+    ${b.ships_to ? `<div class="meta">ships to: ${esc(SHIPS_TO_LABELS[b.ships_to] || b.ships_to)}</div>` : ''}
     ${b.link ? `<div class="meta">supplier: <a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.link)}</a></div>` : ''}
     ${b.product_link ? `<div class="meta">product: <a href="${esc(b.product_link)}" target="_blank" rel="noopener">${esc(b.product_link)}</a></div>` : ''}
     ${b.contact_note ? `<div class="meta">contact: ${esc(b.contact_note)}</div>` : ''}
