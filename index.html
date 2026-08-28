@@ -256,6 +256,12 @@
   details.faq-item[open] summary::after{content:"–";}
   details.faq-item p{font-size:13.5px;color:var(--parchment-dim);margin:10px 0 2px;max-width:640px;}
 
+  .bom-card summary{cursor:pointer;list-style:none;position:relative;padding-right:22px;}
+  .bom-card summary::-webkit-details-marker{display:none;}
+  .bom-card summary::after{content:"+";position:absolute;right:0;top:0;color:var(--brass);font-family:var(--font-mono);font-size:16px;}
+  .bom-card[open] summary::after{content:"–";}
+  .bom-card-body{margin-top:12px;}
+
   .link-card{padding:20px 22px;display:flex;flex-direction:column;gap:4px;text-decoration:none;color:var(--parchment);}
   .link-card:hover{background:var(--ink-2);}
   .link-card .link-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);}
@@ -481,7 +487,6 @@
   <p class="sub">Everything your MiniMax needs once the hull is printed — sail fabric, carbon, electronics, hardware — sourced individually, region by region, by builders who've already fought this fight. Not a ready-made kit; see the FAQ for why. Community-submitted, checked by a class admin before it appears here.</p>
 
   <div class="filters" id="bomFilters">
-    <button class="active" data-cat="all">All</button>
     <button data-cat="sail_fabric">Sail fabric</button>
     <button data-cat="carbon">Carbon</button>
     <button data-cat="electronics">Electronics</button>
@@ -1290,7 +1295,7 @@
     domestic_only: 'Domestic shipping only', other: 'Shipping: see notes'
   };
   let bomSources = [];
-  let bomCategoryFilter = 'all';
+  let bomCategoryFilter = null; // null = nothing picked yet, show the prompt instead of the whole list
   let bomCountryFilter = 'all';
   let bomShipsToFilter = 'all';
 
@@ -1315,6 +1320,9 @@
     sel.value = bomCountryFilter;
   }
 
+  // Collapsed by default (part + supplier only) so the list stays scannable
+  // as it grows — the rest (notes, links) is a <details> reveal, same
+  // mechanism as the FAQ accordion elsewhere on this page.
   function bomCard(s){
     const place = [s.region, s.country].filter(Boolean).join(', ');
     const primaryUrl = s.product_link || s.link;
@@ -1328,25 +1336,37 @@
     } else {
       cta = s.contact_note ? `<p class="map-caption" style="margin:0;">${esc(s.contact_note)}</p>` : '';
     }
-    const shipsBadge = s.ships_to
-      ? `<div class="meta" style="font-size:11px;color:var(--brass-dim);margin-bottom:6px;">${esc(SHIPS_TO_LABELS[s.ships_to] || s.ships_to)}</div>` : '';
-    return `<div class="doc">
-      <div class="kind">${esc(PART_LABELS[s.part_name] || CATEGORY_LABELS[s.category] || s.category)} · ${esc(place)}</div>
-      <h3>${esc(s.supplier_name)}</h3>
-      ${shipsBadge}
-      ${s.notes ? `<p>${esc(s.notes)}</p>` : '<p></p>'}
-      ${cta}
-    </div>`;
+    const shipsLabel = s.ships_to ? (SHIPS_TO_LABELS[s.ships_to] || s.ships_to) : '';
+    return `<details class="doc bom-card">
+      <summary>
+        <div class="kind">${esc(shipsLabel)}${shipsLabel && place ? ' · ' : ''}${esc(place)}</div>
+        <h3>${esc(PART_LABELS[s.part_name] || CATEGORY_LABELS[s.category] || s.category)}</h3>
+        <div class="meta" style="margin-top:2px;">${esc(s.supplier_name)}</div>
+      </summary>
+      <div class="bom-card-body">
+        ${s.notes ? `<p>${esc(s.notes)}</p>` : ''}
+        ${cta}
+      </div>
+    </details>`;
   }
 
   function renderBomList(){
+    const listEl = document.getElementById('bomList');
+    const emptyEl = document.getElementById('bomEmpty');
+    if (!bomCategoryFilter) {
+      listEl.innerHTML = '';
+      emptyEl.textContent = 'Pick a category above to see sources.';
+      emptyEl.hidden = false;
+      return;
+    }
     const list = bomSources.filter(s =>
-      (bomCategoryFilter === 'all' || s.category === bomCategoryFilter) &&
+      s.category === bomCategoryFilter &&
       (bomCountryFilter === 'all' || s.country === bomCountryFilter) &&
       (bomShipsToFilter === 'all' || s.ships_to === bomShipsToFilter)
     );
-    document.getElementById('bomList').innerHTML = list.map(bomCard).join('');
-    document.getElementById('bomEmpty').hidden = list.length > 0;
+    listEl.innerHTML = list.map(bomCard).join('');
+    emptyEl.textContent = 'No approved sources for this filter yet — be the first to suggest one.';
+    emptyEl.hidden = list.length > 0;
   }
 
   document.querySelectorAll('#bomFilters button').forEach(btn => {
@@ -1705,8 +1725,19 @@
   }
   function closeLogin(){ document.getElementById('loginOverlay').classList.remove('open'); }
 
+  // Close only on a genuine click on the backdrop — both the press AND the
+  // release have to land on the overlay itself. Selecting text inside the
+  // modal (e.g. pasting a BOM list) and releasing the drag a pixel outside
+  // it used to count as a "click" on the backdrop and close the form under
+  // you; tracking mousedown separately fixes that without losing the
+  // click-outside-to-close behaviour itself.
   document.querySelectorAll('.modal-overlay').forEach(ov=>{
-    ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+    let downOnOverlay = false;
+    ov.addEventListener('mousedown', e => { downOnOverlay = (e.target === ov); });
+    ov.addEventListener('click', e => {
+      if (e.target === ov && downOnOverlay) ov.classList.remove('open');
+      downOnOverlay = false;
+    });
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(o=>o.classList.remove('open'));
