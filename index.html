@@ -256,6 +256,8 @@
   details.faq-item[open] summary::after{content:"–";}
   details.faq-item p{font-size:13.5px;color:var(--parchment-dim);margin:10px 0 2px;max-width:640px;}
 
+  .bom-select-label{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--brass-dim);margin-bottom:10px;cursor:pointer;}
+  .bom-select-label input{cursor:pointer;}
   .bom-card summary{cursor:pointer;list-style:none;position:relative;padding-right:22px;}
   .bom-card summary::-webkit-details-marker{display:none;}
   .bom-card summary::after{content:"+";position:absolute;right:0;top:0;color:var(--brass);font-family:var(--font-mono);font-size:16px;}
@@ -518,7 +520,10 @@
   <div class="doc-grid" id="bomList"></div>
   <p class="map-caption" id="bomEmpty" style="text-align:center;" hidden="">No approved sources for this filter yet — be the first to suggest one.</p>
 
-  <div style="text-align:center;margin-top:28px;">
+  <div style="text-align:center;margin-top:20px;">
+    <button class="btn-outline" onclick="generateChecklistPDF()">Download PDF checklist (<span id="bomSelectedCount">0</span> sources selected)</button>
+  </div>
+  <div style="text-align:center;margin-top:16px;">
     <button class="btn-brass" onclick="openBomModal()">Suggest a source</button>
   </div>
 </section>
@@ -856,6 +861,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   /* ==================================================================
      MiniMax World Fleet Map
@@ -983,6 +989,28 @@
       locality:'Brighton', status:'sailing', boats:1, role:'owner', verified:true },
     { name:'Sample builder', lat:29.76, lng:-95.37, country:'United States',
       locality:'Houston, Texas', status:'planning', boats:1, role:'builder', verified:false }
+  ];
+
+  /* The complete build BOM, independent of whatever's in the Sourcing Guide
+     database — always printed in full on the PDF checklist, regardless of
+     what (if anything) a builder has selected a specific source for. */
+  const FULL_BOM = [
+    'Hull and printed parts',
+    '3mm carbon rod',
+    '2mm carbon rod',
+    '1mm carbon rod',
+    'Rudder linkage with MinimumRC clips',
+    '8–10lb breaking strain fishing braid (all ropework)',
+    '100–150mm M12 stainless steel bolt (ballast)',
+    'Transmitter and Receiver',
+    '2× 2g servos (16 × 8.2mm, 20mm o/a high)',
+    '1–2× 3.7V 1-cell LiPo (120–180mAh)',
+    'Charger for LiPo',
+    'Sails',
+    'Dacron tape (deck hatch)',
+    'CA glue',
+    'Epoxy',
+    'Sail tape (sail reinforcement)'
   ];
   /* ---------------------- END EDIT-ME BLOCK ---------------------------- */
 
@@ -1316,6 +1344,7 @@
     }
     populateBomCountryFilter();
     renderBomList();
+    updateBomChecklistCount();
   }
 
   function populateBomCountryFilter(){
@@ -1345,6 +1374,10 @@
     const shipsLabel = s.ships_to ? (SHIPS_TO_LABELS[s.ships_to] || s.ships_to) : '';
     return `<details class="doc bom-card">
       <summary>
+        <label class="bom-select-label" onclick="event.stopPropagation()">
+          <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleBomSelect('${s.id}', this.checked)" ${selectedBomIds.has(s.id) ? 'checked' : ''}>
+          Add to my checklist
+        </label>
         <div class="kind">${esc(shipsLabel)}${shipsLabel && place ? ' · ' : ''}${esc(place)}</div>
         <h3>${esc(PART_LABELS[s.part_name] || CATEGORY_LABELS[s.category] || s.category)}</h3>
         <div class="meta" style="margin-top:2px;">${esc(s.supplier_name)}</div>
@@ -1354,6 +1387,93 @@
         ${cta}
       </div>
     </details>`;
+  }
+
+  // ---- PDF checklist: works entirely client-side, nothing sent anywhere ----
+  let selectedBomIds = new Set();
+  try { selectedBomIds = new Set(JSON.parse(localStorage.getItem('minimax_bom_checklist') || '[]')); }
+  catch { selectedBomIds = new Set(); }
+
+  function updateBomChecklistCount(){
+    const el = document.getElementById('bomSelectedCount');
+    if (el) el.textContent = selectedBomIds.size;
+  }
+
+  function toggleBomSelect(id, checked){
+    if (checked) selectedBomIds.add(id); else selectedBomIds.delete(id);
+    try { localStorage.setItem('minimax_bom_checklist', JSON.stringify([...selectedBomIds])); } catch {}
+    updateBomChecklistCount();
+  }
+
+  function generateChecklistPDF(){
+    if (!window.jspdf) { flash('The PDF library did not load — check your connection and try again.', true); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const marginX = 18;
+    const pageBottom = 278;
+    let y = 20;
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+    doc.text('MiniMax Build Checklist', marginX, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(120);
+    doc.text('Generated ' + new Date().toLocaleDateString() + ' from minimax-world-fleet.vercel.app', marginX, y);
+    y += 10; doc.setTextColor(0);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('Full build BOM', marginX, y);
+    y += 6;
+    doc.setFontSize(7); doc.setTextColor(120);
+    doc.text('Ord.', marginX + 0.5, y);
+    doc.text('Rcv.', marginX + 8.5, y);
+    doc.setTextColor(0);
+    y += 5;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+
+    FULL_BOM.forEach(item => {
+      if (y > pageBottom) { doc.addPage(); y = 20; }
+      doc.rect(marginX, y - 3, 4, 4);
+      doc.rect(marginX + 8, y - 3, 4, 4);
+      const lines = doc.splitTextToSize(item, 158);
+      doc.text(lines, marginX + 16, y);
+      y += 5 * lines.length + 3;
+    });
+
+    const selected = bomSources.filter(s => selectedBomIds.has(s.id));
+    if (selected.length) {
+      y += 6;
+      if (y > pageBottom - 20) { doc.addPage(); y = 20; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+      doc.text('My selected sources', marginX, y);
+      y += 8;
+      selected.forEach(s => {
+        if (y > pageBottom - 25) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text(PART_LABELS[s.part_name] || CATEGORY_LABELS[s.category] || s.category, marginX, y);
+        y += 5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+        const place = [s.region, s.country].filter(Boolean).join(', ');
+        const shipsLabel = s.ships_to ? (SHIPS_TO_LABELS[s.ships_to] || s.ships_to) : '';
+        doc.text(`Supplier: ${s.supplier_name}` + (place ? `  ·  ${place}` : '') + (shipsLabel ? `  ·  ${shipsLabel}` : ''), marginX, y);
+        y += 5;
+        const url = s.product_link || s.link;
+        if (url) {
+          doc.setTextColor(30, 90, 200);
+          doc.textWithLink(url, marginX, y, { url });
+          doc.setTextColor(0);
+          y += 5;
+        }
+        if (s.notes) {
+          doc.setFontSize(8.5); doc.setTextColor(90);
+          const noteLines = doc.splitTextToSize('Note: ' + s.notes, 165);
+          doc.text(noteLines, marginX, y);
+          y += 4.5 * noteLines.length; doc.setTextColor(0);
+        }
+        y += 6;
+      });
+    }
+
+    doc.save('minimax-build-checklist.pdf');
   }
 
   function renderBomList(){
