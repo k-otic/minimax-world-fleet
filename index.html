@@ -281,7 +281,7 @@
   .modal .close{position:absolute;top:18px;right:18px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink);}
   .field{margin-bottom:16px;}
   .field label{display:block;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;color:var(--brass-dim);}
-  .field input[type=text],.field input[type=email],.field input[type=number],.field select{
+  .field input[type=text],.field input[type=email],.field input[type=number],.field input[type=file],.field select{
     width:100%;padding:9px 10px;border:1px solid var(--line-light);background:#fff;font-family:var(--font-body);font-size:13.5px;border-radius:2px;
   }
   .field input[readonly]{background:#f3ecda;color:#555;cursor:not-allowed;}
@@ -694,8 +694,14 @@
         <p class="hint">Private — only used so Castlerock Yachtworks can confirm your build came from a genuine licence. Verified boats get a small mark on the map. Never shown publicly.</p>
       </div>
       <div class="field">
-        <label>Boat photo URL (optional for now)</label>
-        <input type="text" name="photo_url" placeholder="Paste an https:// link to a photo — file upload comes later">
+        <label>Boat photo (optional)</label>
+        <input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif">
+        <input type="hidden" name="photo_url">
+        <p class="hint" id="photoHint">Resized and compressed in your browser before upload — nothing huge ever leaves your device.</p>
+        <div id="photoPreviewWrap" hidden="" style="margin-top:8px;display:flex;align-items:center;gap:10px;">
+          <img id="photoPreview" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:2px;border:1px solid var(--line-light);">
+          <a href="#" id="photoRemove" style="font-size:11.5px;color:var(--brass-dim);text-decoration:underline;">Remove photo</a>
+        </div>
       </div>
       <div class="check-line">
         <input type="checkbox" name="public_profile" id="pub"><label for="pub">Show a public profile with my name, photo and locality on the map.</label>
@@ -1403,12 +1409,17 @@
 
   // ---- modals ----
   function openModal(){
-    regStatus.textContent = '';
+    // A standing reminder for a returning admin/owner whose pin still isn't on
+    // the chart — shown only to them, never surfaced anywhere else.
+    regStatus.textContent = (currentSession && myEntry && myEntry.lat == null)
+      ? "Heads up — we still couldn't place a pin for your location. Adjust country/region/locality below and save to fix it."
+      : '';
     if (!currentSession) {
       regStep = 'form';
       document.getElementById('regCodeField').hidden = true;
       regForm.email.readOnly = false;
       regSubmit.textContent = 'Add me to the chart';
+      resetPhotoPicker();
     }
     document.getElementById('modalOverlay').classList.add('open');
   }
@@ -1459,6 +1470,10 @@
     regForm.locality.value = row.locality || '';
     regForm.order_id.value = row.order_id || '';
     regForm.photo_url.value = row.photo_url || '';
+    if (row.photo_url) {
+      document.getElementById('photoPreview').src = row.photo_url;
+      document.getElementById('photoPreviewWrap').hidden = false;
+    }
     regForm.public_profile.checked = !!row.public_profile;
     regForm.allow_contact.checked = !!row.allow_contact;
   }
@@ -1495,6 +1510,7 @@
     myEntry = null;
     isAdmin = false;
     regForm.reset();
+    resetPhotoPicker();
     applyAuthUI();
     flash('Signed out.');
   }
@@ -1528,8 +1544,11 @@
       flash('Could not delete: ' + (looksBlocked(error.message) ? BLOCKED_EXPLANATION : error.message), true);
       return false;
     }
+    try { await sb.storage.from('boat-photos').remove([`${currentSession.user.id}.jpg`]); }
+    catch (err) { console.error('Could not remove stored photo:', err); }
     myEntry = null;
     regForm.reset();
+    resetPhotoPicker();
     applyAuthUI();
     closeModal();
     loadStatsFromSupabase();
@@ -1548,11 +1567,90 @@
     } catch (err) { console.error('Admin check failed:', err); isAdmin = false; }
   }
 
+  // ---- photo upload: resized/compressed client-side, one file per user ----
+  // (uploaded as {user_id}.jpg, so a re-upload naturally overwrites the old one)
+  let selectedPhotoBlob = null;
+  let removePhotoRequested = false;
+
+  function resetPhotoPicker(){
+    selectedPhotoBlob = null;
+    removePhotoRequested = false;
+    document.getElementById('photoFile').value = '';
+    document.getElementById('photoPreviewWrap').hidden = true;
+    document.getElementById('photoHint').textContent =
+      'Resized and compressed in your browser before upload — nothing huge ever leaves your device.';
+  }
+
+  async function compressPhoto(file, maxDim, quality){
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    if (bitmap.close) bitmap.close();
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('could not encode image')), 'image/jpeg', quality);
+    });
+  }
+
+  document.getElementById('photoFile').addEventListener('change', async () => {
+    const input = document.getElementById('photoFile');
+    const file = input.files[0];
+    if (!file) return;
+    removePhotoRequested = false;
+    const hint = document.getElementById('photoHint');
+    hint.textContent = 'Processing…';
+    try {
+      selectedPhotoBlob = await compressPhoto(file, 1200, 0.8);
+      document.getElementById('photoPreview').src = URL.createObjectURL(selectedPhotoBlob);
+      document.getElementById('photoPreviewWrap').hidden = false;
+      hint.textContent = `Ready — ${Math.round(selectedPhotoBlob.size / 1024)} KB after compression. Save to upload.`;
+    } catch (err) {
+      selectedPhotoBlob = null;
+      input.value = '';
+      hint.textContent = 'Could not read that image: ' + (err && err.message || err);
+    }
+  });
+
+  document.getElementById('photoRemove').onclick = e => {
+    e.preventDefault();
+    resetPhotoPicker();
+    removePhotoRequested = true;
+    document.getElementById('photoHint').textContent = 'Photo will be removed — save to confirm.';
+  };
+
+  async function uploadPhoto(blob, userId){
+    const path = `${userId}.jpg`;
+    const { error } = await sb.storage.from('boat-photos')
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: true, cacheControl: '3600' });
+    if (error) throw error;
+    const { data } = sb.storage.from('boat-photos').getPublicUrl(path);
+    // Same path every re-upload, so bust caches with a query string or a
+    // replaced photo can keep showing the old one to returning visitors.
+    return data.publicUrl + '?v=' + Date.now();
+  }
+
   // ---- single write path: creates on first save, updates thereafter ----
   // NOTE: `verified` is deliberately never sent from the browser. A database
   // trigger also blocks it, so a crafted request cannot self-verify.
   async function saveEntry(entry){
     const { lat, lng } = await geocodeLocation(entry.country, entry.region, entry.locality);
+
+    // A freshly picked photo is compressed already (see photoFile's change
+    // handler) — upload it now, under the signed-in session that only exists
+    // at save time. Untouched entries keep whatever URL they already had.
+    let photo_url = safePhoto(entry.photo_url);
+    if (selectedPhotoBlob) {
+      try { photo_url = await uploadPhoto(selectedPhotoBlob, currentSession.user.id); }
+      catch (err) { return { message: 'Could not upload photo: ' + (err && err.message || err) }; }
+    } else if (removePhotoRequested) {
+      photo_url = null;
+      try { await sb.storage.from('boat-photos').remove([`${currentSession.user.id}.jpg`]); }
+      catch (err) { console.error('Could not remove stored photo:', err); }
+    }
+
     const { error } = await sb.from('boats').upsert({
       user_id: currentSession.user.id,
       email: currentSession.user.email,
@@ -1565,10 +1663,11 @@
       locality: entry.locality,
       lat, lng,
       order_id: entry.order_id || null,
-      photo_url: safePhoto(entry.photo_url),
+      photo_url,
       public_profile: entry.public_profile,
       allow_contact: entry.allow_contact
     }, { onConflict: 'user_id' });
+    if (!error) resetPhotoPicker();
     return error;
   }
 
@@ -1588,11 +1687,17 @@
         flash('Your changes were not saved.', true);
         return false;
       }
-      regStatus.textContent = 'Saved.';
       myEntry = await loadMyEntry();
       applyAuthUI();
       loadStatsFromSupabase();
       loadFleetFromSupabase();
+      if (myEntry && myEntry.lat == null) {
+        regStatus.textContent = "Saved, but we couldn't place a pin for that location — " +
+          'try a more specific country/region/locality (e.g. add the nearest town) and save again.';
+        flash('Saved — but no pin could be placed for that location yet.', true);
+        return false;
+      }
+      regStatus.textContent = 'Saved.';
       flash('You’re on the chart. Thanks for keeping your entry up to date.');
       setTimeout(closeModal, 900);
       return false;
@@ -1707,6 +1812,16 @@
       return;
     }
     localStorage.removeItem('minimax_pending_registration');
+    const saved = await loadMyEntry();
+    if (saved && saved.lat == null) {
+      myEntry = saved;
+      prefillForm(saved);
+      openModal();
+      regStatus.textContent = "You're registered, but we couldn't place a pin for that location — " +
+        'try a more specific country/region/locality (e.g. add the nearest town) and save again.';
+      flash('Registered — but no pin could be placed for that location yet.', true);
+      return;
+    }
     flash('You’re on the chart. Thanks for registering your MiniMax.');
   }
 
