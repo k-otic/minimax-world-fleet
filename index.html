@@ -281,9 +281,10 @@
   .modal .close{position:absolute;top:18px;right:18px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink);}
   .field{margin-bottom:16px;}
   .field label{display:block;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;color:var(--brass-dim);}
-  .field input[type=text],.field input[type=email],.field input[type=number],.field input[type=file],.field select{
+  .field input[type=text],.field input[type=email],.field input[type=number],.field input[type=file],.field select,.field textarea{
     width:100%;padding:9px 10px;border:1px solid var(--line-light);background:#fff;font-family:var(--font-body);font-size:13.5px;border-radius:2px;
   }
+  .field textarea{resize:vertical;min-height:64px;}
   .field input[readonly]{background:#f3ecda;color:#555;cursor:not-allowed;}
   .field .hint{font-size:11.5px;color:#666;margin:5px 0 0;text-transform:none;letter-spacing:0;font-family:var(--font-body);}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -325,6 +326,7 @@
   <nav class="toplinks">
     <a href="#map-anchor">Fleet Map</a>
     <a href="#shop-anchor">Get a Boat</a>
+    <a href="#sourcing-anchor">Sourcing</a>
     <a href="#library-anchor">Library</a>
     <a href="#faq-anchor">FAQs</a>
     <a href="#links-anchor">Links</a>
@@ -470,6 +472,34 @@
     <strong>Two things worth knowing before you order.</strong> Printed parts are PLA+ — do not leave a MiniMax in a hot car or in direct sun on a dashboard; suppliers ask you to read their heat-exposure disclaimer. And a finished boat must weigh 120–130&nbsp;g ready to sail, so watch every gram of paint and glue you add.
   </div>
   <p class="map-caption" style="text-align:center;max-width:640px;margin:18px auto 0;">Prices are those published by Castlerock Yachtworks and Cooper’s Wood Crafts and may change with supplier or shipping costs. Some Castlerock listings are marked “coming soon” — check the store for current availability. This page is not a checkout; every link goes to the supplier.</p>
+</section>
+
+<a id="sourcing-anchor"></a>
+<section class="band">
+  <h2>Sourcing Guide</h2>
+  <p class="sub">Regional tips from builders who've already fought this fight — sail fabric, carbon, hardware, epoxy and more. Community-submitted, checked by a class admin before it appears here.</p>
+
+  <div class="filters" id="bomFilters">
+    <button class="active" data-cat="all">All</button>
+    <button data-cat="sail_fabric">Sail fabric</button>
+    <button data-cat="carbon">Carbon</button>
+    <button data-cat="electronics">Electronics</button>
+    <button data-cat="hardware">Hardware</button>
+    <button data-cat="epoxy">Epoxy</button>
+    <button data-cat="other">Other</button>
+  </div>
+  <div style="max-width:1180px;margin:0 auto 22px;">
+    <select id="bomCountryFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
+      <option value="all">All countries</option>
+    </select>
+  </div>
+
+  <div class="doc-grid" id="bomList"></div>
+  <p class="map-caption" id="bomEmpty" style="text-align:center;" hidden="">No approved sources for this filter yet — be the first to suggest one.</p>
+
+  <div style="text-align:center;margin-top:28px;">
+    <button class="btn-brass" onclick="openBomModal()">Suggest a source</button>
+  </div>
 </section>
 
 <a id="library-anchor"></a>
@@ -714,6 +744,55 @@
       <p style="text-align:center;margin-top:14px;color:#555;font-size:12px;" id="deleteRow" hidden="">
         <a href="#" id="deleteEntry" onclick="return deleteMyEntry(event)" style="color:var(--brass-dim);text-decoration:underline;">Delete my entry</a>
       </p>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bomOverlay">
+  <div class="modal">
+    <button class="close" onclick="closeBomModal()">✕</button>
+    <h3>Suggest a source</h3>
+    <div class="sub">Goes live after a quick check by a class admin</div>
+    <form id="bomForm" onsubmit="return handleBomSubmit(event)">
+      <div class="field">
+        <label>Category ·</label>
+        <select name="category" required="">
+          <option value="sail_fabric">Sail fabric</option>
+          <option value="carbon">Carbon</option>
+          <option value="electronics">Electronics</option>
+          <option value="hardware">Hardware / screws</option>
+          <option value="epoxy">Epoxy / adhesives</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Country ·</label>
+          <input type="text" name="country" required="" placeholder="e.g. Germany">
+        </div>
+        <div class="field">
+          <label>Region</label>
+          <input type="text" name="region" placeholder="optional">
+        </div>
+      </div>
+      <div class="field">
+        <label>Supplier name ·</label>
+        <input type="text" name="supplier_name" required="" placeholder="e.g. Icarex Germany">
+      </div>
+      <div class="field">
+        <label>Link</label>
+        <input type="text" name="link" placeholder="https://…">
+      </div>
+      <div class="field">
+        <label>Contact (if no link)</label>
+        <input type="text" name="contact_note" placeholder="email, phone, or how to reach them">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea name="notes" rows="3" placeholder="Shipping restrictions, customs tips, minimum order — anything the next builder should know"></textarea>
+      </div>
+      <p id="bomStatus" style="font-family:var(--font-mono);font-size:11.5px;color:var(--brass-dim);min-height:16px;margin:10px 0 0;"></p>
+      <button type="submit" class="btn-brass submit" id="bomSubmit">Submit for review</button>
     </form>
   </div>
 </div>
@@ -1143,6 +1222,114 @@
       <div class="fact"><div class="n small">${esc(f.active_regions)}</div><div class="l">Builders active in</div></div>`;
     document.getElementById('factsNote').textContent =
       `Community figures reported by Castlerock Yachtworks, ${f.as_of}. The counters at the top of this page are live from this site’s own register and will read lower.`;
+  }
+
+  // ---- sourcing guide ----
+  const CATEGORY_LABELS = {
+    sail_fabric: 'Sail fabric', carbon: 'Carbon', electronics: 'Electronics',
+    hardware: 'Hardware / screws', epoxy: 'Epoxy / adhesives', other: 'Other'
+  };
+  let bomSources = [];
+  let bomCategoryFilter = 'all';
+  let bomCountryFilter = 'all';
+
+  async function loadBomSources(){
+    try {
+      const { data, error } = await sb.from('public_bom_sources').select('*').order('country');
+      if (error) throw error;
+      bomSources = data || [];
+    } catch (err) {
+      console.error('Sourcing guide load failed:', err);
+      bomSources = [];
+    }
+    populateBomCountryFilter();
+    renderBomList();
+  }
+
+  function populateBomCountryFilter(){
+    const sel = document.getElementById('bomCountryFilter');
+    const countries = [...new Set(bomSources.map(s => s.country))].sort();
+    sel.innerHTML = '<option value="all">All countries</option>' +
+      countries.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    sel.value = bomCountryFilter;
+  }
+
+  function bomCard(s){
+    const place = [s.region, s.country].filter(Boolean).join(', ');
+    const cta = s.link
+      ? `<a class="btn-outline" href="${esc(s.link)}" target="_blank" rel="noopener" style="width:100%;">Visit</a>`
+      : (s.contact_note ? `<p class="map-caption" style="margin:0;">${esc(s.contact_note)}</p>` : '');
+    return `<div class="doc">
+      <div class="kind">${esc(CATEGORY_LABELS[s.category] || s.category)} · ${esc(place)}</div>
+      <h3>${esc(s.supplier_name)}</h3>
+      ${s.notes ? `<p>${esc(s.notes)}</p>` : '<p></p>'}
+      ${cta}
+    </div>`;
+  }
+
+  function renderBomList(){
+    const list = bomSources.filter(s =>
+      (bomCategoryFilter === 'all' || s.category === bomCategoryFilter) &&
+      (bomCountryFilter === 'all' || s.country === bomCountryFilter)
+    );
+    document.getElementById('bomList').innerHTML = list.map(bomCard).join('');
+    document.getElementById('bomEmpty').hidden = list.length > 0;
+  }
+
+  document.querySelectorAll('#bomFilters button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#bomFilters button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      bomCategoryFilter = btn.dataset.cat;
+      renderBomList();
+    });
+  });
+  document.getElementById('bomCountryFilter').addEventListener('change', e => {
+    bomCountryFilter = e.target.value;
+    renderBomList();
+  });
+
+  function openBomModal(){
+    if (!currentSession) {
+      flash('Log in first, then suggest a source.');
+      openLogin();
+      return;
+    }
+    document.getElementById('bomStatus').textContent = '';
+    document.getElementById('bomForm').reset();
+    document.getElementById('bomOverlay').classList.add('open');
+  }
+  function closeBomModal(){ document.getElementById('bomOverlay').classList.remove('open'); }
+
+  async function handleBomSubmit(e){
+    e.preventDefault();
+    const form = e.target;
+    const statusEl = document.getElementById('bomStatus');
+    const btn = document.getElementById('bomSubmit');
+    const link = form.link.value.trim();
+
+    btn.disabled = true;
+    statusEl.textContent = 'Submitting…';
+    const { error } = await sb.from('bom_sources').insert({
+      user_id: currentSession.user.id,
+      category: form.category.value,
+      country: form.country.value.trim(),
+      region: form.region.value.trim() || null,
+      supplier_name: form.supplier_name.value.trim(),
+      link: /^https?:\/\//i.test(link) ? link : null,
+      contact_note: form.contact_note.value.trim() || null,
+      notes: form.notes.value.trim() || null
+    });
+    btn.disabled = false;
+    if (error) {
+      statusEl.textContent = looksBlocked(error.message)
+        ? 'Nothing was submitted. ' + BLOCKED_EXPLANATION
+        : 'Could not submit: ' + error.message;
+      return false;
+    }
+    closeBomModal();
+    flash('Thanks — submitted for review. It’ll appear here once a class admin checks it.');
+    return false;
   }
 
   // ---- map ----
@@ -1831,6 +2018,7 @@
     renderDocs();
     renderFacts();
     renderFleet('all');
+    loadBomSources();
 
     let session = null;
     try { ({ data: { session } } = await sb.auth.getSession()); }

@@ -43,6 +43,9 @@
   </div>
   <h2 id="hPend">Pending</h2><div id="pending"></div>
   <h2>Verified</h2><div id="done"></div>
+
+  <h2 id="hBomPend">Sourcing submissions — pending</h2><div id="bomPending"></div>
+  <h2>Sourcing submissions — approved</h2><div id="bomApproved"></div>
 </main>
 
 <script>
@@ -96,6 +99,57 @@ async function boot(session) {
   $('#gate').hidden = true; $('#app').hidden = false;
   $('#who').textContent = session.user.email;
   load();
+  loadBom();
+}
+
+const CATEGORY_LABELS = {
+  sail_fabric: 'Sail fabric', carbon: 'Carbon', electronics: 'Electronics',
+  hardware: 'Hardware', epoxy: 'Epoxy', other: 'Other'
+};
+
+async function loadBom() {
+  const { data, error } = await sb.from('bom_sources')
+    .select('id,category,country,region,supplier_name,link,contact_note,notes,approved,approved_note,approved_at,created_at');
+  if (error) { $('#bomPending').textContent = error.message; return; }
+
+  const pend = data.filter(b => !b.approved);
+  const done = data.filter(b => b.approved);
+  pend.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+  done.sort((a, b) => (b.approved_at || '').localeCompare(a.approved_at || ''));
+
+  $('#hBomPend').textContent = `Sourcing submissions — pending (${pend.length})`;
+  $('#bomPending').innerHTML = pend.length ? pend.map(bomCard).join('')
+    : '<p class="muted">Nothing to review.</p>';
+  $('#bomApproved').innerHTML = done.length ? done.map(bomCard).join('')
+    : '<p class="muted">None yet.</p>';
+  document.querySelectorAll('[data-bomact]').forEach(b => b.onclick = bomAct);
+}
+
+function bomCard(b) {
+  const place = [b.region, b.country].filter(Boolean).join(', ');
+  return `<div class="card">
+    <h3>${esc(b.supplier_name)}
+      ${b.approved ? '<span class="badge">approved</span>' : ''}</h3>
+    <div class="meta">${esc(CATEGORY_LABELS[b.category] || b.category)} · ${esc(place)}</div>
+    ${b.link ? `<div class="meta"><a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.link)}</a></div>` : ''}
+    ${b.contact_note ? `<div class="meta">contact: ${esc(b.contact_note)}</div>` : ''}
+    ${b.notes ? `<div class="meta">notes: ${esc(b.notes)}</div>` : ''}
+    ${b.approved_note ? `<div class="meta">admin note: ${esc(b.approved_note)}</div>` : ''}
+    <div class="row">
+      <input placeholder="note (optional)" size="30" id="bn-${b.id}">
+      ${b.approved
+        ? `<button data-bomact="off" data-id="${b.id}">Unpublish</button>`
+        : `<button class="ok" data-bomact="on" data-id="${b.id}">Approve</button>`}
+    </div></div>`;
+}
+
+async function bomAct(e) {
+  const btn = e.currentTarget, id = btn.dataset.id, on = btn.dataset.bomact === 'on';
+  const note = ($('#bn-' + id)?.value || '').trim() || null;
+  btn.disabled = true; btn.textContent = '…';
+  const { error } = await sb.rpc('approve_bom_source', { p_id: id, p_approved: on, p_note: note });
+  if (error) alert(error.message);
+  loadBom();
 }
 
 async function load() {
