@@ -159,14 +159,25 @@ function bomCard(b) {
       ${b.approved
         ? `<button data-bomact="off" data-id="${b.id}">Unpublish</button>`
         : `<button class="ok" data-bomact="on" data-id="${b.id}">Approve</button>`}
+      <button data-bomact="del" data-id="${b.id}" style="border-color:#c55;color:#c55;">Delete</button>
     </div></div>`;
 }
 
 async function bomAct(e) {
-  const btn = e.currentTarget, id = btn.dataset.id, on = btn.dataset.bomact === 'on';
+  const btn = e.currentTarget, id = btn.dataset.id, act = btn.dataset.bomact;
+
+  if (act === 'del') {
+    if (!confirm('Delete this submission permanently? This cannot be undone.')) return;
+    btn.disabled = true; btn.textContent = '…';
+    const { error } = await sb.from('bom_sources').delete().eq('id', id);
+    if (error) alert(error.message);
+    loadBom();
+    return;
+  }
+
   const note = ($('#bn-' + id)?.value || '').trim() || null;
   btn.disabled = true; btn.textContent = '…';
-  const { error } = await sb.rpc('approve_bom_source', { p_id: id, p_approved: on, p_note: note });
+  const { error } = await sb.rpc('approve_bom_source', { p_id: id, p_approved: act === 'on', p_note: note });
   if (error) alert(error.message);
   loadBom();
 }
