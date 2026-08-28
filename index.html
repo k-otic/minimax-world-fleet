@@ -785,7 +785,14 @@
      ================================================================== */
 
   /* ---- EDIT-ME BLOCK: the only numbers and files you'll change often ---- */
-  const SITE_VERSION = 'v0.9.9-alpha · 20 Aug 2026';
+  const SITE_VERSION = 'v0.9.9-alpha · 28 Aug 2026';
+
+  /* CARTO now requires a (free, up to 5M requests/month) API key on basemap
+     tiles — raster today, vector from some point still unannounced. This key
+     is meant to be public in client-side code, same as the Supabase anon key
+     below — but restrict it to this site's domain in the CARTO dashboard
+     (carto.com/basemaps/apikey) so nobody else's traffic eats the quota. */
+  const CARTO_KEY = 'cb1_2fys_1_75589e266c5efdf04c950df3';
 
   /* Email addresses, split so they never appear whole in the HTML source.
      Add a supplier by adding a key here plus data-mail="key" on the <a>. */
@@ -1167,7 +1174,7 @@
     }
   }
 
-  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  const tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`, {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
   });
   tiles.on('tileload', () => { tileOk = true; });
