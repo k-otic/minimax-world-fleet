@@ -494,19 +494,25 @@
     <button data-cat="epoxy">Epoxy</button>
     <button data-cat="other">Other</button>
   </div>
-  <div style="max-width:1180px;margin:0 auto 22px;display:flex;gap:10px;flex-wrap:wrap;">
-    <select id="bomShipsToFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
-      <option value="all">Any shipping</option>
-      <option value="worldwide">Worldwide</option>
-      <option value="europe">Europe</option>
-      <option value="north_america">North America</option>
-      <option value="oceania">Oceania</option>
-      <option value="domestic_only">Domestic only</option>
-      <option value="other">Other</option>
-    </select>
-    <select id="bomCountryFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
-      <option value="all">All countries</option>
-    </select>
+  <div style="max-width:1180px;margin:0 auto 22px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;">
+    <div>
+      <label style="display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-bottom:5px;">Will they ship to you?</label>
+      <select id="bomShipsToFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
+        <option value="all">Any shipping range</option>
+        <option value="worldwide">Ships worldwide</option>
+        <option value="europe">Ships within Europe</option>
+        <option value="north_america">Ships within North America</option>
+        <option value="oceania">Ships within Oceania</option>
+        <option value="domestic_only">Domestic shipping only</option>
+        <option value="other">Other — see notes</option>
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-bottom:5px;">Supplier is based in</label>
+      <select id="bomCountryFilter" style="padding:8px 10px;border:1px solid var(--line);background:var(--ink-2);color:var(--parchment-dim);border-radius:2px;font-family:var(--font-mono);font-size:11.5px;">
+        <option value="all">Any country</option>
+      </select>
+    </div>
   </div>
 
   <div class="doc-grid" id="bomList"></div>
@@ -1315,7 +1321,7 @@
   function populateBomCountryFilter(){
     const sel = document.getElementById('bomCountryFilter');
     const countries = [...new Set(bomSources.map(s => s.country))].sort();
-    sel.innerHTML = '<option value="all">All countries</option>' +
+    sel.innerHTML = '<option value="all">Any country</option>' +
       countries.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     sel.value = bomCountryFilter;
   }
