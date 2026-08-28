@@ -780,8 +780,12 @@
         <input type="text" name="supplier_name" required="" placeholder="e.g. Icarex Germany">
       </div>
       <div class="field">
-        <label>Link</label>
-        <input type="text" name="link" placeholder="https://…">
+        <label>Supplier link</label>
+        <input type="text" name="link" placeholder="https://… — their homepage or store">
+      </div>
+      <div class="field">
+        <label>Direct product link (optional)</label>
+        <input type="text" name="product_link" placeholder="https://… — the exact item, if there's a page for it">
       </div>
       <div class="field">
         <label>Contact (if no link)</label>
@@ -1256,9 +1260,17 @@
 
   function bomCard(s){
     const place = [s.region, s.country].filter(Boolean).join(', ');
-    const cta = s.link
-      ? `<a class="btn-outline" href="${esc(s.link)}" target="_blank" rel="noopener" style="width:100%;">Visit</a>`
-      : (s.contact_note ? `<p class="map-caption" style="margin:0;">${esc(s.contact_note)}</p>` : '');
+    const primaryUrl = s.product_link || s.link;
+    const primaryLabel = s.product_link ? 'View product' : 'Visit supplier';
+    let cta;
+    if (primaryUrl) {
+      cta = `<a class="btn-outline" href="${esc(primaryUrl)}" target="_blank" rel="noopener" style="width:100%;">${primaryLabel}</a>`;
+      if (s.product_link && s.link) {
+        cta += `<p class="map-caption" style="margin:6px 0 0;"><a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:var(--brass-dim);">Supplier site →</a></p>`;
+      }
+    } else {
+      cta = s.contact_note ? `<p class="map-caption" style="margin:0;">${esc(s.contact_note)}</p>` : '';
+    }
     return `<div class="doc">
       <div class="kind">${esc(CATEGORY_LABELS[s.category] || s.category)} · ${esc(place)}</div>
       <h3>${esc(s.supplier_name)}</h3>
@@ -1295,8 +1307,10 @@
       openLogin();
       return;
     }
+    // Deliberately NOT resetting the form here — closing the modal (Escape,
+    // clicking outside, the ✕) must never lose a draft the person was mid-way
+    // through. Only a successful submission clears it (see handleBomSubmit).
     document.getElementById('bomStatus').textContent = '';
-    document.getElementById('bomForm').reset();
     document.getElementById('bomOverlay').classList.add('open');
   }
   function closeBomModal(){ document.getElementById('bomOverlay').classList.remove('open'); }
@@ -1307,6 +1321,8 @@
     const statusEl = document.getElementById('bomStatus');
     const btn = document.getElementById('bomSubmit');
     const link = form.link.value.trim();
+    const productLink = form.product_link.value.trim();
+    const isHttps = u => /^https?:\/\//i.test(u);
 
     btn.disabled = true;
     statusEl.textContent = 'Submitting…';
@@ -1316,7 +1332,8 @@
       country: form.country.value.trim(),
       region: form.region.value.trim() || null,
       supplier_name: form.supplier_name.value.trim(),
-      link: /^https?:\/\//i.test(link) ? link : null,
+      link: isHttps(link) ? link : null,
+      product_link: isHttps(productLink) ? productLink : null,
       contact_note: form.contact_note.value.trim() || null,
       notes: form.notes.value.trim() || null
     });
@@ -1327,6 +1344,7 @@
         : 'Could not submit: ' + error.message;
       return false;
     }
+    form.reset();
     closeBomModal();
     flash('Thanks — submitted for review. It’ll appear here once a class admin checks it.');
     return false;

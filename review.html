@@ -109,7 +109,7 @@ const CATEGORY_LABELS = {
 
 async function loadBom() {
   const { data, error } = await sb.from('bom_sources')
-    .select('id,category,country,region,supplier_name,link,contact_note,notes,approved,approved_note,approved_at,created_at');
+    .select('id,category,country,region,supplier_name,link,product_link,contact_note,notes,approved,approved_note,approved_at,created_at');
   if (error) { $('#bomPending').textContent = error.message; return; }
 
   const pend = data.filter(b => !b.approved);
@@ -131,7 +131,8 @@ function bomCard(b) {
     <h3>${esc(b.supplier_name)}
       ${b.approved ? '<span class="badge">approved</span>' : ''}</h3>
     <div class="meta">${esc(CATEGORY_LABELS[b.category] || b.category)} · ${esc(place)}</div>
-    ${b.link ? `<div class="meta"><a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.link)}</a></div>` : ''}
+    ${b.link ? `<div class="meta">supplier: <a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.link)}</a></div>` : ''}
+    ${b.product_link ? `<div class="meta">product: <a href="${esc(b.product_link)}" target="_blank" rel="noopener">${esc(b.product_link)}</a></div>` : ''}
     ${b.contact_note ? `<div class="meta">contact: ${esc(b.contact_note)}</div>` : ''}
     ${b.notes ? `<div class="meta">notes: ${esc(b.notes)}</div>` : ''}
     ${b.approved_note ? `<div class="meta">admin note: ${esc(b.approved_note)}</div>` : ''}

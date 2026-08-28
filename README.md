@@ -114,6 +114,36 @@ alone (see Architecture notes below).
 
 Dated by when each change went live.
 
+**2026-08-28 — Sourcing Guide.** A new community-submitted, admin-moderated
+directory of regional material suppliers (sail fabric, carbon, electronics,
+hardware, epoxy), filterable by category and country, with a "Suggest a
+source" form and a matching moderation queue on the review panel. Prompted by
+a real 30-day materials-sourcing saga and separate community feedback that the
+idea would genuinely help newcomers. Two refinements landed shortly after
+launch: a submission's supplier link and direct product link are now separate
+fields (browsing a card shows both, when given), and closing the "Suggest a
+source" form (Escape, clicking outside) no longer discards a draft in progress.
+
+**2026-08-28 — Real photo upload, and a warning for unplaceable locations.**
+Registrants can now upload an actual photo (resized/compressed in the browser,
+stored in Supabase Storage) instead of pasting a URL to one hosted elsewhere.
+Separately: when the geocoder can't resolve a registration's location, the site
+used to save it silently with no pin and no explanation — it now tells the
+person directly, both right after saving and if they come back later with the
+pin still missing, without anyone else ever being able to tell who's affected.
+
+**2026-08-28 — Fixed the map's basemap tiles.** CARTO started requiring a free
+API key on their raster tiles; the map was showing an "API KEY REQUIRED"
+watermark until one was added.
+
+**2026-08-28 — Embedded Brett's YouTube interview** in the Class Library
+section, alongside the PDFs.
+
+**2026-08-20 — Licence-verification status is now readable at a glance.** The
+ring colour on each map pin (cream vs brass-gold) was too subtle to tell apart
+on the real map — switched to orange (not verified) / green (verified), and
+the popup for every boat now shows an explicit status badge either way.
+
 **2026-08-20 — Privacy: self-service deletion, and a fixed "hidden" bug.** Added a
 short privacy note to the registration form, two FAQ entries covering what's
 collected/why and which privacy laws apply (GDPR and NZ's Privacy Act 2020), and a
