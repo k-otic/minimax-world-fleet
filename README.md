@@ -114,6 +114,41 @@ alone (see Architecture notes below).
 
 Dated by when each change went live.
 
+**2026-08-28 — PDF build checklist.** A "Download PDF checklist" button on
+Beyond the Hull generates a PDF entirely client-side (jsPDF, nothing sent
+anywhere): the complete 16-item build BOM with drawn Ordered/Received
+checkboxes, plus full detail on whichever specific sources a builder has
+checked while browsing. Selection persists in the browser across reloads.
+
+**2026-08-28 — Sourcing Guide: exact parts and a shipping filter.**
+Submissions now pick an exact part from a fixed list matched to the real BOM
+— carbon rod by diameter rather than by individual piece, each option
+showing the combined minimum length needed — instead of a generic category.
+Added a required "ships to" field and filter (worldwide / regional /
+domestic-only), separate from the supplier's own country, so someone can see
+only what will actually reach them. Class admins can now delete a submission
+outright, not just approve or unpublish it.
+
+**2026-08-28 — Renamed Sourcing Guide to "Beyond the Hull"**, with a
+subtitle that says outright it's not a ready-made kit, plus a new FAQ entry
+on why no single kit exists — mainly liability on electronics the seller
+didn't manufacture, and international shipping restrictions on lithium
+batteries.
+
+**2026-08-28 — Beyond the Hull UX pass.** No category shown by default
+(avoids an ever-growing wall of cards), cards lead with the part name rather
+than the supplier, and collapse to just part + supplier until expanded —
+plus labelled the shipping/country filter dropdowns, which sat unexplained
+next to the category buttons. Also fixed a real bug: selecting text inside a
+modal (e.g. pasting a parts list) and releasing the drag outside its bounds
+registered as a click on the backdrop and silently closed the form mid-entry;
+closing now requires both the press and the release to land on the backdrop.
+
+**2026-08-28 — Misc polish.** The Brett video got its own section instead of
+being nested inside Class Library, and the sign-in code field moved to the
+end of the registration form with a highlighted border — it used to sit near
+the top of a long form and could appear off-screen after submitting.
+
 **2026-08-28 — Sourcing Guide.** A new community-submitted, admin-moderated
 directory of regional material suppliers (sail fabric, carbon, electronics,
 hardware, epoxy), filterable by category and country, with a "Suggest a
